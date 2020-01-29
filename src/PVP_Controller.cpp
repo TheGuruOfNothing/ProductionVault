@@ -1,20 +1,18 @@
-
-/*
 /* *******The Package Vault Project***********
-* I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
-* and collaboration in this project. The majority of the code is his and he deserves the credit 
-* for all his patience invested as well, as I am not the easiest dog to teach new tricks to. 
-*
-* Additional credit is owed to @Chris Aitken for his efforts also. The original core code was 
-* his. I have used that as the foundation to the project and though it is now only a small piece
-* of the large puzzle, it is what took the vault from a passing whimsy to a functional device. LOTS of
-* upgrades have been built onto that code.
-*
-* The Package Vault Project was started as a personal project to try and stop package thieves
-* from taking my packages. After falling victim, I decided enough was enough. This device
-* was born. It's popularity amongst the neighbors and local community has made it take on a life of it's own.
-* It is my hope that you will take the code that has been created and figure out how to integrate it
-* into something new and cool that has the same goal - to thwart package thieves. 
+ I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
+ and collaboration in this project. The majority of the code is his and he deserves the credit 
+ for all his patience invested as well, as I am not the easiest dog to teach new tricks to. 
+
+ Additional credit is owed to @Chris Aitken for his efforts also. The original core code was 
+ his. I have used that as the foundation to the project and though it is now only a small piece
+ of the large puzzle, it is what took the vault from a passing whimsy to a functional device. LOTS of
+ upgrades have been built onto that code.
+
+ The Package Vault Project was started as a personal project to try and stop package thieves
+ from taking my packages. After falling victim, I decided enough was enough. This device
+ was born. It's popularity amongst the neighbors and local community has made it take on a life of it's own.
+ It is my hope that you will take the code that has been created and figure out how to integrate it
+ into something new and cool that has the same goal - to thwart package thieves. 
 
 You can get more information on this project or on this code at www.packagevaultproject.org
 -------------------------------------------------------------------------------------------------------------
@@ -31,7 +29,8 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with VaultController.  If not, see
 <http://www.gnu.org/licenses/>.
-------------------------------------------------------------------------------------------------------------*/
+------------------------------------------------------------------------------------------------------------ 
+*/
 
 #include <Arduino.h>
 #include <NeoPixelBus.h>
@@ -95,6 +94,9 @@ void init_NeoStatus(void);
    	#define PIXEL_COUNT    2   // Number of NeoPixels
 	// Declare our NeoPixel strip object:
 	NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> strip(PIXEL_COUNT, PIXEL_PIN);
+	//Sets NeoPixel function
+	#define USE_RGB_NEO_STATUS
+	
 
     // ****INPUTS ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS
 	//_______________________________________________________________________
@@ -206,7 +208,7 @@ void loop()
 			Serial.println("Now Unlocking");
 
 			// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//************************Put a BLINKING green light on here**********************************************************
 			break;
 
 
@@ -229,7 +231,7 @@ void loop()
 			Serial.println("Now Locking");
 
 			// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//*********************Put on a BLINKING red light here
 			
 
 			break;
@@ -253,7 +255,7 @@ void loop()
 			}
 
 			// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//**********************Put a BLINKING red light here****************************************
   			
 			break;
 
@@ -271,11 +273,11 @@ void loop()
 			{
 				Serial.println("I've been left AJAR");
 				// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//**********************Put a BLINKING blue light here****************************************
 			}
 
 			// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//***************************************Put a SOLID green light here*************************************
 
 			// Assume package arrived
 			package = true;
@@ -289,19 +291,20 @@ void loop()
 			{
 				Serial.println("PANIC_SW!");
 				changeState(STATE_UNLOCKING);
+				//********************Make a BLINKING RED AND BLUE light flash for 10 minutes unless box is reset****************
 				break;
 			}
 
 			// Unlock when proper keypad code is given
 			if (KEYPAD_TRIGGER_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL));
 			{
-				Serial.println("PANIC_SW!");
+				Serial.println("Keyad received correct code, unlocking now...");
 				changeState(STATE_UNLOCKING);
 				break;
 			}
 
 			// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//***********************Put a BLINKING red light here
 
 			Serial.println("Vault is locked!");
 			break;
@@ -331,12 +334,12 @@ void loop()
 			{
 				Serial.println("Lid was left AJAR");
 				// Set status light
-				SetFeedbackStatus(FEEDBACK_STATUS_READY);
+				//**********************Put a BLINKING blue light here****************************************
 		
 			}
 
 			// Set status light
-			SetFeedbackStatus(FEEDBACK_STATUS_READY);
+			//*************************Put a BLINKING green light here****************************************
 			break;
 	}
 
@@ -406,7 +409,7 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *
 *
 *****************************************************************************************************************************/
-
+#ifdef USE_RGB_NEO_STATUS
 
     struct NOTIF{
       uint8_t fForceStatusUpdate = false;
@@ -422,15 +425,9 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
         uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
       }pixel[PIXEL_COUNT];
     }notif;
-    //int8_t parsesub_NotificationPanel();
+   
+#define Status_Red = HsbColor(????????????)
 
-
-
-
-void loop() {
- NeoStatus_Tasker();
-  
-}
 
 void init_NeoStatus(){
 
@@ -485,11 +482,4 @@ void NeoStatus_Tasker(){
   }
 
 }
-
-// Time elapsed function that updates the time when true
-bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
-  if(abs(millis()-*tSaved)>=ElapsedTime){ *tSaved=millis();
-    return true;
-  }
-  return false;
-}
+#endif
