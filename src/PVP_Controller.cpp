@@ -613,6 +613,8 @@ enum COLOUR_MAP_INDEXS{COLOUR_RED_INDEX2,COLOUR_GREEN_INDEX2,COLOUR_BLUE_INDEX2}
 
 			//ramping it up and down, pulses... colour stays the same :)
 
+//			Lots to start with here
+
 
 
 
