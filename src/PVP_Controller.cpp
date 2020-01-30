@@ -35,7 +35,7 @@ License along with VaultController.  If not, see
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
-#define BUILD_NUMBER_CTR "v0_13"
+#define BUILD_NUMBER_CTR "v0_3"
 
 // Levels of stability (from testing to functional)
 #define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
@@ -511,7 +511,7 @@ void NeoStatus_Tasker(){
 			status = NOTIF_MODE_BLINKING_ON_ID(color_map_green);
 		break;
    		case FEEDBACK_STATUS_OPEN:
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);    ///////////////////// BROKEN   BROKEN    BROKEN    BROKEN    BROKEN    BROKEN
 		break;
 		case FEEDBACK_STATUS_AJAR_ERROR:
 			status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
@@ -528,8 +528,7 @@ void NeoStatus_Tasker(){
 		case FEEDBACK_STATUS_BLINKING_PANIC;
 			status = NOTIF_MODE_BLINKING_ON_ID(red and blue goes here... somehow);  //FIX THIS!!!
 		break;
-
-}
+	}
 
 /*****************************************************************************************************************************
 *********************************************************************END NEOPIXEL SECTION***************************************
