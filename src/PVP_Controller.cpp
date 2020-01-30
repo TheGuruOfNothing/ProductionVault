@@ -1,7 +1,3 @@
-
-
-TEST EDIT
-
 /* *******The Package Vault Project***********
  I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
  and collaboration in this project. The majority of the code is his and he deserves the credit 
@@ -56,15 +52,18 @@ bool package = false;
 
 
 //FSM Enums - Defining Switch Case enumeration for each switch****************************************************
+//Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
 int current_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
 
-enum FEEDBACK_STATUS{FEEDBACK_STATUS_READY=0, FEEDBACK_STATUS_UNLOCKING,FEEDBACK_STATUS_OPEN,FEEDBACK_STATUS_AJAR_ERROR,
-FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKED,FEEDBACK_STATUS_READY_RETRIEVE};
-uint8_t status = FEEDBACK_STATUS_READY;
+//Switch-case for NEOpixel Status indicator lights
+enum FEEDBACK_STATUS{FEEDBACK_STATUS_OFF=0, FEEDBACK_STATUS_READY, FEEDBACK_STATUS_UNLOCKING,FEEDBACK_STATUS_OPEN,FEEDBACK_STATUS_AJAR_ERROR,
+FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKED,FEEDBACK_STATUS_READY_RETRIEVE, FEEDBACK_STATUS_BLINKING_PANIC};
+uint8_t status = FEEDBACK_STATUS_OFF;
 
+//Switch-case for NEOpixel status (BLINK/SOLID) mode
 enum NOTIF_MODE{NOTIF_MODE_OFF_ID=0, NOTIF_MODE_STATIC_OFF_ID, NOTIF_MODE_STATIC_ON_ID, NOTIF_MODE_BLINKING_OFF_ID,
-NOTIF_MODE_BLINKING_ON_ID, }; 
+NOTIF_MODE_BLINKING_ON_ID }; 
 
 //Function Prototypes
 void SetFeedbackStatus(uint8_t new_status );
@@ -155,6 +154,8 @@ void setup()
 	PANIC_PIR_SNSR_INIT();
 	KEYPAD_TRIGGER_INIT();
 	NEO_PIN_INIT();
+
+	init_NeoStatus();
 
 	strip.Begin(); // Initialize NeoPixel strip object (REQUIRED)
   	strip.Show();  // Initialize all pixels to 'off'
@@ -415,6 +416,14 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *****************************************************************************************************************************/
 #ifdef USE_RGB_NEO_STATUS
 
+	#define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	#define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	#define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	#define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+	#define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));	
+
+
+
     struct NOTIF{
       uint8_t fForceStatusUpdate = false;
       uint8_t fShowStatusUpdate  = false;
@@ -430,7 +439,8 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
       }pixel[PIXEL_COUNT];
     }notif;
    
-#define Status_Red = HsbColor(????????????)
+#endif
+
 
 
 void init_NeoStatus(){
@@ -482,8 +492,48 @@ void NeoStatus_Tasker(){
   // Update
   if(notif.fShowStatusUpdate){notif.fShowStatusUpdate=false;
     strip.Show();
-    notif.tSaved.ForceUpdate = millis(); // so we dont have flasher clashes
+    notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
   }
 
+	/*Sets how status NEOpixels display depending on intended color and pattern
+	*	COLORS AS DEFINED ABOVE... HERE FOR SAME PAGE REFERENCE ONLY...
+	*	#define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	*	#define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	*	#define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	*	#define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+	*	#define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+	*/
+
+	switch (FEEDBACK_STATUS){
+		default:
+		case FEEDBACK_STATUS_OFF:
+		case FEEDBACK_STATUS_READY:
+			status = NOTIF_MODE_STATIC_ON_ID(color_map_green);
+		break;
+		case FEEDBACK_STATUS_UNLOCKING:
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_green);
+		break;
+   		case FEEDBACK_STATUS_OPEN:
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
+		break;
+		case FEEDBACK_STATUS_AJAR_ERROR:
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
+		break;
+		case FEEDBACK_STATUS_CLOSED_COUNTING:
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
+		break;
+		case FEEDBACK_STATUS_LOCKED:
+			status = NOTIF_MODE_STATIC_ON_ID(color_map_red);
+		break;
+		case FEEDBACK_STATUS_READY_RETRIEVE:
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_yellow);
+		break;
+		case FEEDBACK_STATUS_BLINKING_PANIC;
+			status = NOTIF_MODE_BLINKING_ON_ID(red and blue goes here... somehow);  //FIX THIS!!!
+		break;
+
 }
-#endif
+
+
+
+}
