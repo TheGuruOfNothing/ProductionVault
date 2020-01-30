@@ -413,11 +413,16 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *****************************************************************************************************************************/
 #ifdef USE_RGB_NEO_STATUS
 
-	#define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	#define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-	#define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-	#define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-	#define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));	
+//defines like this are not valid "define = x" its "define X"
+// This might have worked, I am not sure, since its functions calling functions
+	// #define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	// #define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	// #define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	// #define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+	// #define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));	
+
+
+	// You also forgot to add my functions "Hue360.." etc
 
 
 
@@ -492,42 +497,150 @@ void NeoStatus_Tasker(){
     notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
   }
 
-	/*Sets how status NEOpixels display depending on intended color and pattern
-	*	COLORS AS DEFINED ABOVE... HERE FOR SAME PAGE REFERENCE ONLY...
-	*	#define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	*	#define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-	*	#define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-	*	#define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-	*	#define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+// WRONG, see below
+	// /*Sets how status NEOpixels display depending on intended color and pattern
+	// *	COLORS AS DEFINED ABOVE... HERE FOR SAME PAGE REFERENCE ONLY...
+	// *	#define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	// *	#define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	// *	#define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	// *	#define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+	// *	#define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+	// */
+
+
+
+
+// pixel 0 as red
+notif.pixel[0].colour.H = 0;
+notif.pixel[0].colour.S = 1;
+notif.pixel[0].colour.B = 1;
+
+HsbColor hsb_red = HsbColor(0,1,1);
+notif.pixel[0].colour = hsb_red; // also red, as "colour" I have is a hsbcolour type, see the struct definition I made
+
+//^^ This stores ONE colour, so lets store multiple colours in an array of type hsbcolor
+HsbColor preset_colour_map[3];
+
+//lets fill this array with red, green and blue
+preset_colour_map[0] = HsbColor(0,1,1);
+preset_colour_map[1] = HsbColor(120/360.0f,1,1);
+preset_colour_map[2] = HsbColor(240/360.0f,1,1);
+
+//so back to setting the pixels, you can now do this
+notif.pixel[0].colour = preset_colour_map[0]; // set pixel 0, to the colour stored in the array space 0 which is red
+
+// Now you have to remember what each index colour is, thats not nice
+#define COLOUR_RED_INDEX 	0
+#define COLOUR_GREEN_INDEX 	1
+#define COLOUR_BLUE_INDEX 	2
+
+//so back to setting the pixels, you can now do this
+notif.pixel[0].colour = preset_colour_map[COLOUR_RED_INDEX]; // SAME AS ABOVE, but much nicer! you dont need to remember 0 now
+
+//defines are great, but what if you have 20 or more, and they are just increasing in numbers... ENUMS!
+
+enum COLOUR_MAP_INDEXS{COLOUR_RED_INDEX2,COLOUR_GREEN_INDEX2,COLOUR_BLUE_INDEX2};
+//equates to
+//enum COLOUR_MAP_INDEXS{0,				1,					2				};
+
+//SIDE NOTE, the default starting number is 0, but you can set it and any of them directly, it just counts up after
+//enum COLOUR_MAP_INDEXS{COLOUR_RED_INDEX2=1000,COLOUR_GREEN_INDEX2,COLOUR_BLUE_INDEX2}; ==> 1000,1001,1002 etc
+ 
+//now, HSbcolour using floats, where hsbcolour(h,s,b), 
+	//h = hue/colour, a float between 0 and 1... not human useful...we want the full circle (0-360)
+	//s = saturation, a float between 0 and 1... not human useful... "whiteness" 0-100%
+	//b = brightnes, a float between 0 and 1... not human useful... 0-100%
+// Hsbcolour(h/360.0f,s/100.0f,b/100.0f) will convert these from "human" numbers to floats... its ugly... 
+/// Check my project for those functions "Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100)"
+
+// putting to together a little more, you will see some "smart/lazy" code of mine
+
+	// enum PRESET_COLOUR_MAP_INDEXES{
+	// 	// Red
+	// 	COLOUR_MAP_RED_ID=0,                                      // starts at 0 (which is what we want the array index to start at)
+	// 	COLOUR_MAP_ORANGE_ID,										//goes on by the amount of colours you need
+	// 	COLOUR_MAP_GREEN_ID,
+	// 	// 
+	// 	COLOUR_MAP_NONE_ID											//think of this as "count++", here you would have indexs 0,1,2,3 where this is 3, at the end... coincidently, this counted that you have THREE colours above it, if enum starts at 0, then you will always have the last one as a "count"
+	// };
+	// #define PRESET_COLOUR_MAP_INDEXES_MAX COLOUR_MAP_NONE_ID   	//LOOK, order is imporant, the code above was created, and so count is known, now I can make an array big enough to fit them all in
+	// HsbColor preset_colour_map[PRESET_COLOUR_MAP_INDEXES_MAX];
+
+	// preset_colour_map[COLOUR_MAP_RED_ID]      = HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	// preset_colour_map[COLOUR_MAP_GREEN_ID]   = HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	// preset_colour_map[COLOUR_MAP_BLUE_ID]   = HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	
+	/// Where is "COLOUR_MAP_NONE_ID" alsu useful??
+	/*
+	for(int colour_id;colour_id<COLOUR_MAP_NONE_ID;colour_id++){
+		//this will loop for 0,1,2 BUT NOT 3
+	}
+
+
 	*/
 
-	switch (FEEDBACK_STATUS){
+
+	//switch (FEEDBACK_STATUS){ //this is like saying "#define "FEEDBACK"", its never going to change
+
+
+
+//YOU SHOULDN'T BE CALLING THIS PART OF THE CODE ALL THE TIME, ONLY SET WHEN A COLOUR CHANGES
+	switch (status){
+
+
+
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
-			status = NOTIF_MODE_STATIC_ON_ID(color_map_green);
+			//status = NOTIF_MODE_STATIC_ON_ID(color_map_green); // enum is just a define, not a function, I assume this was not what you thought
+
+			//Now if you implemented the above
+			notif.pixel[0].colour = preset_colour_map[COLOUR_GREEN_INDEX2];
+			notif.pixel[1].colour = preset_colour_map[COLOUR_GREEN_INDEX2];
+
+			//to make this more clear what its doing, its set the entire hsbcolour, which if you follow into the libs is literally
+			
+			notif.pixel[1].colour.H = preset_colour_map[COLOUR_GREEN_INDEX2].H;
+			notif.pixel[1].colour.S = preset_colour_map[COLOUR_GREEN_INDEX2].S;
+			notif.pixel[1].colour.B = preset_colour_map[COLOUR_GREEN_INDEX2].B;
+
+			//sometimes, you will see me set the whole colour
+			notif.pixel[1].colour = preset_colour_map[COLOUR_GREEN_INDEX2];
+			uint8_t new_brightness_as_percentage = 50;
+			notif.pixel[1].colour.B = Brt100toFloat(new_brightness_as_percentage);
+			// but instead override the brightness value to my own... 
+			// toggle brightness 1 to 0, or 100 to 0, blinks,
+
+			//ramping it up and down, pulses... colour stays the same :)
+
+
+
+
+
+
+
 		break;
-		case FEEDBACK_STATUS_UNLOCKING:
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_green);
-		break;
-   		case FEEDBACK_STATUS_OPEN:
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);    ///////////////////// BROKEN   BROKEN    BROKEN    BROKEN    BROKEN    BROKEN
-		break;
-		case FEEDBACK_STATUS_AJAR_ERROR:
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
-		break;
-		case FEEDBACK_STATUS_CLOSED_COUNTING:
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
-		break;
-		case FEEDBACK_STATUS_LOCKED:
-			status = NOTIF_MODE_STATIC_ON_ID(color_map_red);
-		break;
-		case FEEDBACK_STATUS_READY_RETRIEVE:
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_yellow);
-		break;
-		case FEEDBACK_STATUS_BLINKING_PANIC;
-			status = NOTIF_MODE_BLINKING_ON_ID(red and blue goes here... somehow);  //FIX THIS!!!
-		break;
+		// case FEEDBACK_STATUS_UNLOCKING:
+		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_green);
+		// break;
+   		// case FEEDBACK_STATUS_OPEN:
+		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);    ///////////////////// BROKEN   BROKEN    BROKEN    BROKEN    BROKEN    BROKEN
+		// break;
+		// case FEEDBACK_STATUS_AJAR_ERROR:
+		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
+		// break;
+		// case FEEDBACK_STATUS_CLOSED_COUNTING:
+		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
+		// break;
+		// case FEEDBACK_STATUS_LOCKED:
+		// 	status = NOTIF_MODE_STATIC_ON_ID(color_map_red);
+		// break;
+		// case FEEDBACK_STATUS_READY_RETRIEVE:
+		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_yellow);
+		// break;
+		// case FEEDBACK_STATUS_BLINKING_PANIC;
+		// 	status = NOTIF_MODE_BLINKING_ON_ID(red and blue goes here... somehow);  //FIX THIS!!!
+		// break;
 	}
 
 /*****************************************************************************************************************************
