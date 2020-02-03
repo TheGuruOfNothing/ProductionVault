@@ -423,30 +423,6 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *****************************************************************************************************************************/
 #ifdef USE_RGB_NEO_STATUS
 
-
-
-float Hue360toFloat(uint16_t hue){
-  return hue/360.0f;
-}
-float Sat100toFloat(uint8_t sat){
-  return sat/100.0f;
-}
-float Brt100toFloat(uint8_t brt){
-  return brt/100.0f;
-}
-uint16_t HueFloatto360(float hue){
-  return round(hue*360.0f);
-}
-uint8_t SatFloatto100(float sat){
-  return round(sat*100.0f);
-}
-uint8_t BrtFloatto100(float brt){
-  return round(brt*100.0f);
-}
-
-
-
-
 struct NOTIF{
     uint8_t fForceStatusUpdate = false;
     uint8_t fShowStatusUpdate  = false;
@@ -462,10 +438,6 @@ struct NOTIF{
     }pixel[PIXEL_COUNT];
 }notif;
    
-#endif
-
-
-
 void init_NeoStatus(){
 
   for(int i=0;i<PIXEL_COUNT;i++){
@@ -543,6 +515,26 @@ enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,
 #define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
 HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
 
+float Hue360toFloat(uint16_t hue){
+  return hue/360.0f;
+}
+float Sat100toFloat(uint8_t sat){
+  return sat/100.0f;
+}
+float Brt100toFloat(uint8_t brt){
+  return brt/100.0f;
+}
+uint16_t HueFloatto360(float hue){
+  return round(hue*360.0f);
+}
+uint8_t SatFloatto100(float sat){
+  return round(sat*100.0f);
+}
+uint8_t BrtFloatto100(float brt){
+  return round(brt*100.0f);
+}
+//End of color mapping
+
 //so back to setting the pixels, you can now do this
 notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX]; 
 
@@ -581,12 +573,6 @@ notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
 
 //			Lots to start with here
 
-
-
-
-
-
-
 		break;
 		// case FEEDBACK_STATUS_UNLOCKING:
 		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_green);
@@ -614,5 +600,5 @@ notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
 /*****************************************************************************************************************************
 *********************************************************************END NEOPIXEL SECTION***************************************
 *****************************************************************************************************************************/
-
+#endif
 }
