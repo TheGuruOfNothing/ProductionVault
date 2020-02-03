@@ -51,7 +51,6 @@ bool reset = false;
 bool package = false;
 
 
-//FSM Enums - Defining Switch Case enumeration for each switch****************************************************
 //Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
 int current_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
@@ -61,9 +60,12 @@ enum FEEDBACK_STATUS{FEEDBACK_STATUS_OFF=0, FEEDBACK_STATUS_READY, FEEDBACK_STAT
 FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKED,FEEDBACK_STATUS_READY_RETRIEVE, FEEDBACK_STATUS_BLINKING_PANIC};
 uint8_t status = FEEDBACK_STATUS_OFF;
 
-//Switch-case for NEOpixel status (BLINK/SOLID) mode
+//Defines for NEOpixel status (BLINK/SOLID) mode
 enum NOTIF_MODE{NOTIF_MODE_OFF_ID=0, NOTIF_MODE_STATIC_OFF_ID, NOTIF_MODE_STATIC_ON_ID, NOTIF_MODE_BLINKING_OFF_ID,
 NOTIF_MODE_BLINKING_ON_ID }; 
+
+//Defines for Mapping colors by name
+enum COLOR_MAP_INDEXES{COLOUR_RED_INDEX=0,COLOUR_PURPLE_INDEX,COLOUR_GREEN_INDEX,COLOUR_BLUE_INDEX,COLOUR_YELLOW_INDEX,COLOUR_MAP_NONE_ID};
 
 //Function Prototypes
 void SetFeedbackStatus(uint8_t new_status );
@@ -73,6 +75,14 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 void Status_Update(void);
 void NeoStatus_Tasker(void);
 void init_NeoStatus(void);
+
+//Gonna guess these are not needed all the way up here at the top?
+float    Hue360toFloat(uint16_t hue);
+float    Sat100toFloat(uint8_t sat);
+float    Brt100toFloat(uint8_t brt);
+uint16_t HueFloatto360(float hue);
+uint8_t  SatFloatto100(float sat);
+uint8_t  BrtFloatto100(float brt);
 
 	// Timer Intervals - ALL non-blocking timers
     #define BLINK_INTERVAL		500			// Fast blink interval, half second
@@ -295,7 +305,7 @@ void loop()
 			if (!PANIC_PIR_SNSR_ACTIVE());
 			{
 				Serial.println("PANIC_SW!");
-				changeState(STATE_UNLOCKING);
+				changeState(STATE_UNLOCKING, true);
 				//********************Make a BLINKING RED AND BLUE light flash for 10 minutes unless box is reset****************
 				break;
 			}
@@ -304,7 +314,7 @@ void loop()
 			if (KEYPAD_TRIGGER_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL));
 			{
 				Serial.println("Keyad received correct code, unlocking now...");
-				changeState(STATE_UNLOCKING);
+				changeState(STATE_UNLOCKING, true);
 				break;
 			}
 
@@ -413,33 +423,44 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *****************************************************************************************************************************/
 #ifdef USE_RGB_NEO_STATUS
 
-//defines like this are not valid "define = x" its "define X"
-// This might have worked, I am not sure, since its functions calling functions
-	// #define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	// #define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-	// #define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-	// #define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-	// #define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));	
 
 
-	// You also forgot to add my functions "Hue360.." etc
+float Hue360toFloat(uint16_t hue){
+  return hue/360.0f;
+}
+float Sat100toFloat(uint8_t sat){
+  return sat/100.0f;
+}
+float Brt100toFloat(uint8_t brt){
+  return brt/100.0f;
+}
+uint16_t HueFloatto360(float hue){
+  return round(hue*360.0f);
+}
+uint8_t SatFloatto100(float sat){
+  return round(sat*100.0f);
+}
+uint8_t BrtFloatto100(float brt){
+  return round(brt*100.0f);
+}
 
 
 
-    struct NOTIF{
-      uint8_t fForceStatusUpdate = false;
-      uint8_t fShowStatusUpdate  = false;
-      struct TSAVED{
-        uint32_t ForceUpdate = millis();
-      }tSaved;
-      struct PIXELN{
-        uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
-        uint16_t period_ms = 1000; // Time between fully on and off
-        HsbColor colour; // colour... just because it's spelled funny :-)
-        uint32_t tSavedUpdate; // millis last updated
-        uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
-      }pixel[PIXEL_COUNT];
-    }notif;
+
+struct NOTIF{
+    uint8_t fForceStatusUpdate = false;
+    uint8_t fShowStatusUpdate  = false;
+    struct TSAVED{
+    uint32_t ForceUpdate = millis();
+    }tSaved;
+    struct PIXELN{
+    uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
+    uint16_t period_ms = 1000; // Time between fully on and off
+    HsbColor colour; // colour... just because it's spelled funny :-)
+    uint32_t tSavedUpdate; // millis last updated
+    uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
+    }pixel[PIXEL_COUNT];
+}notif;
    
 #endif
 
@@ -497,49 +518,32 @@ void NeoStatus_Tasker(){
     notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
   }
 
-// WRONG, see below
-	// /*Sets how status NEOpixels display depending on intended color and pattern
-	// *	COLORS AS DEFINED ABOVE... HERE FOR SAME PAGE REFERENCE ONLY...
-	// *	#define color_map_red 		= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	// *	#define color_map_green 	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-	// *	#define color_map_blue 		= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-	// *	#define color_map_purple 	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-	// *	#define color_map_yellow 	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
-	// */
+
+//Color Mapping
+HsbColor preset_colour_map[5];
+preset_colour_map[0] = HsbColor(0,1,1); //Red
+preset_colour_map[1] = HsbColor(50/360.0f,1,1); //Purple
+preset_colour_map[2] = HsbColor(120/360.0f,1,1); //Green
+preset_colour_map[3] = HsbColor(240/360.0f,1,1); //Blue
+preset_colour_map[4] = HsbColor(300/360.0f,1,1); //Yellow
+
+enum COLOUR_MAP_INDEXES{COLOUR_RED_INDEX=0,
+						COLOUR_PURPLE_INDEX,
+						COLOUR_GREEN_INDEX,
+						COLOUR_BLUE_INDEX,
+						COLOUR_YELLOW_INDEX, 
+						COLOUR_MAP_NONE_ID};
 
 
-
-
-// pixel 0 as red
-notif.pixel[0].colour.H = 0;
-notif.pixel[0].colour.S = 1;
-notif.pixel[0].colour.B = 1;
-
-HsbColor hsb_red = HsbColor(0,1,1);
-notif.pixel[0].colour = hsb_red; // also red, as "colour" I have is a hsbcolour type, see the struct definition I made
-
-//^^ This stores ONE colour, so lets store multiple colours in an array of type hsbcolor
-HsbColor preset_colour_map[3];
-
-//lets fill this array with red, green and blue
-preset_colour_map[0] = HsbColor(0,1,1);
-preset_colour_map[1] = HsbColor(120/360.0f,1,1);
-preset_colour_map[2] = HsbColor(240/360.0f,1,1);
+#define PRESET_COLOUR_MAP_INDEXES_MAX COLOUR_MAP_NONE_ID   
+HsbColor preset_colour_map[PRESET_COLOUR_MAP_INDEXES_MAX];
 
 //so back to setting the pixels, you can now do this
-notif.pixel[0].colour = preset_colour_map[0]; // set pixel 0, to the colour stored in the array space 0 which is red
-
-// Now you have to remember what each index colour is, thats not nice
-#define COLOUR_RED_INDEX 	0
-#define COLOUR_GREEN_INDEX 	1
-#define COLOUR_BLUE_INDEX 	2
-
-//so back to setting the pixels, you can now do this
-notif.pixel[0].colour = preset_colour_map[COLOUR_RED_INDEX]; // SAME AS ABOVE, but much nicer! you dont need to remember 0 now
+notif.pixel[0].colour = preset_colour_map[COLOUR_RED_INDEX]; 
 
 //defines are great, but what if you have 20 or more, and they are just increasing in numbers... ENUMS!
 
-enum COLOUR_MAP_INDEXS{COLOUR_RED_INDEX2,COLOUR_GREEN_INDEX2,COLOUR_BLUE_INDEX2};
+
 //equates to
 //enum COLOUR_MAP_INDEXS{0,				1,					2				};
 
