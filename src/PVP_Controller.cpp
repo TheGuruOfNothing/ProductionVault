@@ -65,7 +65,7 @@ enum NOTIF_MODE{NOTIF_MODE_OFF_ID=0, NOTIF_MODE_STATIC_OFF_ID, NOTIF_MODE_STATIC
 NOTIF_MODE_BLINKING_ON_ID }; 
 
 //Defines for Mapping colors by name
-enum COLOR_MAP_INDEXES{COLOUR_RED_INDEX=0,COLOUR_PURPLE_INDEX,COLOUR_GREEN_INDEX,COLOUR_BLUE_INDEX,COLOUR_YELLOW_INDEX,COLOUR_MAP_NONE_ID};
+enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
 
 //Function Prototypes
 void SetFeedbackStatus(uint8_t new_status );
@@ -456,7 +456,7 @@ struct NOTIF{
     struct PIXELN{
     uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
     uint16_t period_ms = 1000; // Time between fully on and off
-    HsbColor colour; // colour... just because it's spelled funny :-)
+    HsbColor color; // color... just because it's spelled funny :-)
     uint32_t tSavedUpdate; // millis last updated
     uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
     }pixel[PIXEL_COUNT];
@@ -471,9 +471,9 @@ void init_NeoStatus(){
   for(int i=0;i<PIXEL_COUNT;i++){
     notif.fForceStatusUpdate = true; //clear presets
     notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
-    notif.pixel[i].colour.H = (i*30)/360.0f;
-    notif.pixel[i].colour.S = 1;
-    notif.pixel[i].colour.B = 1;
+    notif.pixel[i].color.H = (i*30)/360.0f;
+    notif.pixel[i].color.S = 1;
+    notif.pixel[i].color.B = 1;
   }
 
 } //end "init_NeoStatus"
@@ -495,7 +495,7 @@ void NeoStatus_Tasker(){
           strip.SetPixelColor(i,0);
         break;
         case NOTIF_MODE_STATIC_ON_ID:
-          strip.SetPixelColor(i,HsbColor(notif.pixel[i].colour.H,notif.pixel[i].colour.S,notif.pixel[i].colour.B));    
+          strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
         break;
         case NOTIF_MODE_BLINKING_OFF_ID:
           strip.SetPixelColor(i,0);
@@ -503,7 +503,7 @@ void NeoStatus_Tasker(){
           notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
         break;
         case NOTIF_MODE_BLINKING_ON_ID:
-          strip.SetPixelColor(i,HsbColor(notif.pixel[i].colour.H,notif.pixel[i].colour.S,notif.pixel[i].colour.B));    
+          strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
           notif.pixel[i].mode = NOTIF_MODE_BLINKING_OFF_ID;
           notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
           break;
@@ -520,73 +520,35 @@ void NeoStatus_Tasker(){
 
 
 //Color Mapping
-HsbColor preset_colour_map[5];
-preset_colour_map[0] = HsbColor(0,1,1); //Red
-preset_colour_map[1] = HsbColor(50/360.0f,1,1); //Purple
-preset_colour_map[2] = HsbColor(120/360.0f,1,1); //Green
-preset_colour_map[3] = HsbColor(240/360.0f,1,1); //Blue
-preset_colour_map[4] = HsbColor(300/360.0f,1,1); //Yellow
+HsbColor preset_color_map[5];
+// preset_color_map[0] = HsbColor(0,1,1); //Red
+preset_colour_map[COLOR_RED_INDEX]      = HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+// preset_color_map[1] = HsbColor(50/360.0f,1,1); //Purple
+preset_colour_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+// preset_color_map[2] = HsbColor(120/360.0f,1,1); //Green
+preset_colour_map[COLOR_GREEN_INDEX]    = HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+// preset_color_map[3] = HsbColor(240/360.0f,1,1); //Blue
+preset_colour_map[COLOR_BLUE_INDEX]     = HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+// preset_color_map[4] = HsbColor(300/360.0f,1,1); //Yellow
+preset_colour_map[COLOR_YELLOW_INDEX]   = HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
 
-enum COLOUR_MAP_INDEXES{COLOUR_RED_INDEX=0,
-						COLOUR_PURPLE_INDEX,
-						COLOUR_GREEN_INDEX,
-						COLOUR_BLUE_INDEX,
-						COLOUR_YELLOW_INDEX, 
-						COLOUR_MAP_NONE_ID};
+enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,
+						COLOR_PURPLE_INDEX,
+						COLOR_GREEN_INDEX,
+						COLOR_BLUE_INDEX,
+						COLOR_YELLOW_INDEX, 
+						COLOR_MAP_NONE_ID};
 
 
-#define PRESET_COLOUR_MAP_INDEXES_MAX COLOUR_MAP_NONE_ID   
-HsbColor preset_colour_map[PRESET_COLOUR_MAP_INDEXES_MAX];
+#define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
+HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
 
 //so back to setting the pixels, you can now do this
-notif.pixel[0].colour = preset_colour_map[COLOUR_RED_INDEX]; 
-
-//defines are great, but what if you have 20 or more, and they are just increasing in numbers... ENUMS!
+notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX]; 
 
 
-//equates to
-//enum COLOUR_MAP_INDEXS{0,				1,					2				};
 
-//SIDE NOTE, the default starting number is 0, but you can set it and any of them directly, it just counts up after
-//enum COLOUR_MAP_INDEXS{COLOUR_RED_INDEX2=1000,COLOUR_GREEN_INDEX2,COLOUR_BLUE_INDEX2}; ==> 1000,1001,1002 etc
- 
-//now, HSbcolour using floats, where hsbcolour(h,s,b), 
-	//h = hue/colour, a float between 0 and 1... not human useful...we want the full circle (0-360)
-	//s = saturation, a float between 0 and 1... not human useful... "whiteness" 0-100%
-	//b = brightnes, a float between 0 and 1... not human useful... 0-100%
-// Hsbcolour(h/360.0f,s/100.0f,b/100.0f) will convert these from "human" numbers to floats... its ugly... 
-/// Check my project for those functions "Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100)"
-
-// putting to together a little more, you will see some "smart/lazy" code of mine
-
-	// enum PRESET_COLOUR_MAP_INDEXES{
-	// 	// Red
-	// 	COLOUR_MAP_RED_ID=0,                                      // starts at 0 (which is what we want the array index to start at)
-	// 	COLOUR_MAP_ORANGE_ID,										//goes on by the amount of colours you need
-	// 	COLOUR_MAP_GREEN_ID,
-	// 	// 
-	// 	COLOUR_MAP_NONE_ID											//think of this as "count++", here you would have indexs 0,1,2,3 where this is 3, at the end... coincidently, this counted that you have THREE colours above it, if enum starts at 0, then you will always have the last one as a "count"
-	// };
-	// #define PRESET_COLOUR_MAP_INDEXES_MAX COLOUR_MAP_NONE_ID   	//LOOK, order is imporant, the code above was created, and so count is known, now I can make an array big enough to fit them all in
-	// HsbColor preset_colour_map[PRESET_COLOUR_MAP_INDEXES_MAX];
-
-	// preset_colour_map[COLOUR_MAP_RED_ID]      = HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	// preset_colour_map[COLOUR_MAP_GREEN_ID]   = HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-	// preset_colour_map[COLOUR_MAP_BLUE_ID]   = HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
 	
-	/// Where is "COLOUR_MAP_NONE_ID" alsu useful??
-	/*
-	for(int colour_id;colour_id<COLOUR_MAP_NONE_ID;colour_id++){
-		//this will loop for 0,1,2 BUT NOT 3
-	}
-
-
-	*/
-
-
-	//switch (FEEDBACK_STATUS){ //this is like saying "#define "FEEDBACK"", its never going to change
-
-
 
 //YOU SHOULDN'T BE CALLING THIS PART OF THE CODE ALL THE TIME, ONLY SET WHEN A COLOUR CHANGES
 	switch (status){
@@ -599,19 +561,19 @@ notif.pixel[0].colour = preset_colour_map[COLOUR_RED_INDEX];
 			//status = NOTIF_MODE_STATIC_ON_ID(color_map_green); // enum is just a define, not a function, I assume this was not what you thought
 
 			//Now if you implemented the above
-			notif.pixel[0].colour = preset_colour_map[COLOUR_GREEN_INDEX2];
-			notif.pixel[1].colour = preset_colour_map[COLOUR_GREEN_INDEX2];
+			notif.pixel[0].color = preset_color_map[COLOUR_GREEN_INDEX2];
+			notif.pixel[1].color = preset_color_map[COLOUR_GREEN_INDEX2];
 
 			//to make this more clear what its doing, its set the entire hsbcolour, which if you follow into the libs is literally
 			
-			notif.pixel[1].colour.H = preset_colour_map[COLOUR_GREEN_INDEX2].H;
-			notif.pixel[1].colour.S = preset_colour_map[COLOUR_GREEN_INDEX2].S;
-			notif.pixel[1].colour.B = preset_colour_map[COLOUR_GREEN_INDEX2].B;
+			notif.pixel[1].color.H = preset_color_map[COLOUR_GREEN_INDEX2].H;
+			notif.pixel[1].color.S = preset_color_map[COLOUR_GREEN_INDEX2].S;
+			notif.pixel[1].color.B = preset_color_map[COLOUR_GREEN_INDEX2].B;
 
 			//sometimes, you will see me set the whole colour
-			notif.pixel[1].colour = preset_colour_map[COLOUR_GREEN_INDEX2];
+			notif.pixel[1].color = preset_color_map[COLOUR_GREEN_INDEX2];
 			uint8_t new_brightness_as_percentage = 50;
-			notif.pixel[1].colour.B = Brt100toFloat(new_brightness_as_percentage);
+			notif.pixel[1].color.B = Brt100toFloat(new_brightness_as_percentage);
 			// but instead override the brightness value to my own... 
 			// toggle brightness 1 to 0, or 100 to 0, blinks,
 
