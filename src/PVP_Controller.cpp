@@ -53,7 +53,7 @@ int blinkFlag = 0;
 
 //Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
-int lid_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
+int box_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
 
 //Switch-case for NEOpixel Status indicator lights
 enum FEEDBACK_STATUS{FEEDBACK_STATUS_OFF=0, FEEDBACK_STATUS_READY, FEEDBACK_STATUS_UNLOCKING,FEEDBACK_STATUS_OPEN,FEEDBACK_STATUS_AJAR_ERROR,
@@ -68,90 +68,87 @@ NOTIF_MODE_BLINKING_ON_ID,NOTIF_MODE_TOGGLE_COLORS_ON,NOTIF_MODE_TOGGLE_COLORS_O
 enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
 #define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
 HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
-void initColormap();
 
 //Function Prototypes
 void SetFeedbackStatus(uint8_t new_status );
-void changeState(int new_state, bool reset = false);
-bool GetTimer(unsigned long &timer, int interval);
-bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
-void Status_Update(void);
-void NeoStatus_Tasker(void);
-void init_NeoStatus(void);
-void init_Colormap(void)
-
-//Gonna guess these are not needed all the way up here at the top?
 float    Hue360toFloat(uint16_t hue);
 float    Sat100toFloat(uint8_t sat);
 float    Brt100toFloat(uint8_t brt);
 uint16_t HueFloatto360(float hue);
 uint8_t  SatFloatto100(float sat);
 uint8_t  BrtFloatto100(float brt);
+void changeState(int new_state, bool reset = false);
+bool GetTimer(unsigned long &timer, int interval);
+bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
+void Status_Update(void);
+void NeoStatus_Tasker(void);
+void init_Colormap(void);
 
-	// Timer Intervals - ALL non-blocking timers
-    #define BLINK_INTERVAL		500			// Fast blink interval, half second
-    #define SLOW_BLINK_INTERVAL	1800		// Slow blink interval, 1.8 seconds
-    #define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
-    #define LOCKDOWN_INTERVAL	15000		// Period of time before lockdown of vault after lid close, 15 seconds
-    #define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
-    #define DEBOUNCE_INTERVAL	400			// Button Debounce
-    #define TOTAL_RESET_INTERVAL 86400000	// Full board reset timer, fired evey 24 hours - debug only
+// Timer Intervals - ALL non-blocking timers
+#define BLINK_INTERVAL		500			// Fast blink interval, half second
+#define SLOW_BLINK_INTERVAL	1800		// Slow blink interval, 1.8 seconds
+#define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
+#define LOCKDOWN_INTERVAL	15000		// Period of time before lockdown of vault after lid close, 15 seconds
+#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
+#define DEBOUNCE_INTERVAL	400			// Button Debounce
+#define TOTAL_RESET_INTERVAL 86400000	// Full board reset timer, fired evey 24 hours - debug only
 
-    // I/O
-    #define RELAY_LOCK_PIN		16	// Unlock Relay
-    #define RELAY_UNLOCK_PIN	17	// Lock Relay
-    #define INTERIOR_LIGHTS_PIN	4	// Interior lighting ring for camera and panic functions
-	#define LID_SWITCH			18	// Mag switch on lid
-    #define PANIC_PIR_SNSR		19	// Passive Infrared sensor for panic release
-    #define KEYPAD_TRIGGER		14	// Latching pushbutton for  panic release, backlit
-	#define LED_PIN        		3	// Control pin for the neopixel status indicators
+// I/O
+#define RELAY_LOCK_PIN		16	// Unlock Relay
+#define RELAY_UNLOCK_PIN	17	// Lock Relay
+#define INTERIOR_LIGHTS_PIN	4	// Interior lighting ring for camera and panic functions
+#define LID_SWITCH			18	// Mag switch on lid
+#define PANIC_PIR_SNSR		19	// Passive Infrared sensor for panic release
+#define KEYPAD_TRIGGER		14	// Latching pushbutton for  panic release, backlit
+#define LED_PIN        		3	// Control pin for the neopixel status indicators
 
-	// NeoPixel Info
-	#define PIXEL_PIN     19  // Digital IO pin 
-   	#define PIXEL_COUNT    2   // Number of NeoPixels
-	// Declare our NeoPixel strip object:
-	NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> strip(PIXEL_COUNT, PIXEL_PIN);
-	//Sets NeoPixel function
-	#define USE_RGB_NEO_STATUS
+// NeoPixel Info
+#define PIXEL_PIN     19  // Digital IO pin 
+#define PIXEL_COUNT    2   // Number of NeoPixels
+
+// Declare our NeoPixel strip object
+NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> strip(PIXEL_COUNT, PIXEL_PIN);
+
+
 	
 
-    // ****INPUTS ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS
-	//_______________________________________________________________________
+// ****INPUTS ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS
+//_______________________________________________________________________
 
-	//Switches or Buttons -  
-    #define LID_SWITCH_INIT() 		 	pinMode(LID_SWITCH, INPUT_PULLUP)
-    #define LID_SWITCH_ACTIVE()      	digitalRead(LID_SWITCH)
-    #define PANIC_PIR_SNSR_INIT()	 	pinMode(PANIC_PIR_SNSR, INPUT)
-    #define PANIC_PIR_SNSR_ACTIVE()  	digitalRead(PANIC_PIR_SNSR)
-    #define KEYPAD_TRIGGER_INIT()	 	pinMode(KEYPAD_TRIGGER, INPUT_PULLUP)
-    #define KEYPAD_TRIGGER_ACTIVE()  	digitalRead(KEYPAD_TRIGGER)
+//Switches or Buttons -  
+#define LID_SWITCH_INIT() 		 	pinMode(LID_SWITCH, INPUT_PULLUP)
+#define LID_SWITCH_ACTIVE()      	digitalRead(LID_SWITCH)
+#define PANIC_PIR_SNSR_INIT()	 	pinMode(PANIC_PIR_SNSR, INPUT)
+#define PANIC_PIR_SNSR_ACTIVE()  	digitalRead(PANIC_PIR_SNSR)
+#define KEYPAD_TRIGGER_INIT()	 	pinMode(KEYPAD_TRIGGER, INPUT_PULLUP)
+#define KEYPAD_TRIGGER_ACTIVE()  	digitalRead(KEYPAD_TRIGGER)
 			     	
 
-    // ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS
-	//______________________________________________________________________________
+// ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS
+//______________________________________________________________________________
 
-	#define NEO_PIN_INIT() 				pinMode(PIXEL_PIN, OUTPUT)//Neopixel status indicators
+#define NEO_PIN_INIT() 				pinMode(PIXEL_PIN, OUTPUT)//Neopixel status indicators
 
-	//RELAYS
-    #define ON_LOGIC_LEVEL HIGH  //Opened when LOW
+//RELAYS
+#define ON_LOGIC_LEVEL HIGH  //Opened when LOW
 
-      #define RELAY_LOCK_INIT()      	pinMode(RELAY_LOCK_PIN,OUTPUT)
-	  #define RELAY_LOCK_START()	 	digitalWrite(RELAY_LOCK_PIN,LOW)
-      //#define RELAY_LOCK_ONOFF()     	!digitalRead(RELAY_LOCK_PIN) //opened when LOW
-      #define RELAY_LOCK_ON()       	digitalWrite(RELAY_LOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
-      #define RELAY_LOCK_OFF()      	digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_LOCK_INIT()      	pinMode(RELAY_LOCK_PIN,OUTPUT)
+#define RELAY_LOCK_START()	 	digitalWrite(RELAY_LOCK_PIN,LOW)
+//#define RELAY_LOCK_ONOFF()     	!digitalRead(RELAY_LOCK_PIN) //opened when LOW
+#define RELAY_LOCK_ON()       	digitalWrite(RELAY_LOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_LOCK_OFF()      	digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
 
-	  #define RELAY_UNLOCK_INIT()      	pinMode(RELAY_UNLOCK_PIN,OUTPUT)
-	  #define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,LOW)
-      //#define RELAY_UNLOCK_ONOFF()    !digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
-      #define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
-      #define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_UNLOCK_INIT()      	pinMode(RELAY_UNLOCK_PIN,OUTPUT)
+#define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,LOW)
+//#define RELAY_UNLOCK_ONOFF()    !digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
+#define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
 
-	  #define INTERIOR_LIGHTS_INIT()    pinMode(INTERIOR_LIGHTS_PIN,OUTPUT)
-	  #define INTERIOR_LIGHTS_START()	digitalWrite(RELAY_LOCK_PIN,LOW)
-      //#define INTERIOR_LIGHTS_ONOFF() !digitalRead(INTERIOR_LIGHTS_PIN) //opened when LOW
-      #define INTERIOR_LIGHTS_ON()      digitalWrite(INTERIOR_LIGHTS_PIN,ON_LOGIC_LEVEL) //opened when LOW
-      #define INTERIOR_LIGHTS_OFF()     digitalWrite(INTERIOR_LIGHTS_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+#define INTERIOR_LIGHTS_INIT()    pinMode(INTERIOR_LIGHTS_PIN,OUTPUT)
+#define INTERIOR_LIGHTS_START()	  digitalWrite(RELAY_LOCK_PIN,LOW)
+//#define INTERIOR_LIGHTS_ONOFF() !digitalRead(INTERIOR_LIGHTS_PIN) //opened when LOW
+#define INTERIOR_LIGHTS_ON()      digitalWrite(INTERIOR_LIGHTS_PIN,ON_LOGIC_LEVEL) //opened when LOW
+#define INTERIOR_LIGHTS_OFF()     digitalWrite(INTERIOR_LIGHTS_PIN,!ON_LOGIC_LEVEL) //opened when LOW
       
 /*****************************************************************************************************************************
  * SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        
@@ -169,7 +166,7 @@ void setup()
 	KEYPAD_TRIGGER_INIT();
 	NEO_PIN_INIT();
 
-	init_NeoStatus();
+
 	init_Colormap();
 
 	strip.Begin(); // Initialize NeoPixel strip object (REQUIRED)
@@ -193,163 +190,162 @@ void loop()
 	}
 	*/
 
-	switch (LID_STATE)
-	{
-		
+	switch (box_state){
 		case STATE_UNLOCKING:
-			// Unlocked with package
-			if (package == true && GetTimer(timer, RELAY_INTERVAL))
+		// Unlocked with package
+		if (package == true && GetTimer(timer, RELAY_INTERVAL))
+		{
+			Serial.println("Ready for retrieval");
+		// Stops actuator power
+			RELAY_UNLOCK_OFF();
+			changeState(STATE_QUALIFIER);
+		}
+		// Unlocked and no package
+		else 
+		{
+			if (GetTimer(timer, RELAY_INTERVAL	)) 
 			{
-				Serial.println("Ready for retrieval");
-			// Stops actuator power
+				Serial.println("Ready for delivery");
+		// Stops actuator power
 				RELAY_UNLOCK_OFF();
-				changeState(STATE_QUALIFIER);
+				changeState(STATE_CLOSED);
 			}
-			// Unlocked and no package
-			else 
-			{
-				if (GetTimer(timer, RELAY_INTERVAL	)) 
-				{
-					Serial.println("Ready for delivery");
+		}
+		// Starts actuator power for unlock
+		RELAY_UNLOCK_ON();
+		Serial.println("Now Unlocking");
+
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_UNLOCKING; //Green blinking
+			break;
+
+		case STATE_LOCKING:
+		// Completely locked
+		if (GetTimer(timer, RELAY_INTERVAL))
+		{
 			// Stops actuator power
-					RELAY_UNLOCK_OFF();
-					changeState(STATE_CLOSED);
-				}
-			}
-			// Starts actuator power for unlock
-			RELAY_UNLOCK_ON();
-			Serial.println("Now Unlocking");
+			RELAY_LOCK_OFF();
+			// Turns off interior INTERIOR_LIGHTS
+			INTERIOR_LIGHTS_OFF();
+			changeState(STATE_LOCKED);
+		}
 
-			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_UNLOCKING; //Green blinking
-				break;
+		// Starts actuator power / keep locking
+		RELAY_LOCK_ON();
+		// Turns interior INTERIOR_LIGHTS on for camera, 10 seconds
+		INTERIOR_LIGHTS_ON();
+		Serial.println("Now Locking");
 
-			case STATE_LOCKING:
-			// Completely locked
-			if (GetTimer(timer, RELAY_INTERVAL))
-			{
-				// Stops actuator power
-				RELAY_LOCK_OFF();
-				// Turns off interior INTERIOR_LIGHTS
-				INTERIOR_LIGHTS_OFF();
-				changeState(STATE_LOCKED);
-			}
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_LOCKING; // Purple and Red alternating
+			break;
 
-			// Starts actuator power / keep locking
-			RELAY_LOCK_ON();
-			// Turns interior INTERIOR_LIGHTS on for camera, 10 seconds
+		case STATE_CLOSED:
+		Serial.println("Entered STATE_CLOSED");
+		// Just opened and debounced
+		if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
+		{
+			Serial.println("Lid Was Opened!");
+			changeState(STATE_OPENED);
+		}
+		// Package arrived and lockout timer expired
+		else if (package == true && GetTimer(timer, LOCKDOWN_INTERVAL))
+		{
 			INTERIOR_LIGHTS_ON();
-			Serial.println("Now Locking");
+			changeState(STATE_LOCKING);
+		}
 
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_CLOSED_COUNTING; // Purple blinking
+  			break;
+
+		case STATE_OPENED:
+		// Just closed and debounced
+		if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
+		{
+			Serial.println("Lid Was Closed!");
+			changeState(STATE_CLOSED);
+		}
+		// Lid open for too long
+		else if (GetTimer(timer, LID_OPEN_INTERVAL))
+		{
+			Serial.println("I've been left AJAR");
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_AJAR_ERROR; // Blue binking
+		}
+
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_OPEN; // Red blinking
+
+		// Assume package arrived
+		package = true;
+			break;
+
+		case STATE_LOCKED:
+		// Unlock in case of PANIC_SENSOR tripped
+		if (!PANIC_PIR_SNSR_ACTIVE());
+		{
+			Serial.println("PANIC_SW!");
+			changeState(STATE_UNLOCKING, true);
 			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_LOCKING; // Purple and Red alternating
-				break;
+			status = FEEDBACK_STATUS_BLINKING_PANIC; // Purple and Red alternating
+		}
 
-			case STATE_CLOSED:
-			Serial.println("Entered STATE_CLOSED");
-			// Just opened and debounced
-			if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
-			{
-				Serial.println("Lid Was Opened!");
-				changeState(STATE_OPENED);
-			}
-			// Package arrived and lockout timer expired
-			else if (package == true && GetTimer(timer, LOCKDOWN_INTERVAL))
-			{
-				INTERIOR_LIGHTS_ON();
-				changeState(STATE_LOCKING);
-			}
+		// Unlock when proper keypad code is given
+		if (KEYPAD_TRIGGER_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL));
+		{
+			Serial.println("Keyad received correct code, unlocking now...");
+			changeState(STATE_UNLOCKING, true);
+		}
 
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_LOCKED; // Red solid
+
+		Serial.println("Vault is locked!");
+			break;
+
+		case STATE_QUALIFIER:
+		Serial.println("Qualifier!");
+		// Just opened and debounced with package
+		if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == true)
+		{
+			Serial.println("_____________________________________________________________");
+			Serial.println("Package Retrieved");
+			Serial.println("Package state has been reset to false");
+			Serial.println("When lid is closed, we will be ready for the next delivery!");
+			Serial.println("_____________________________________________________________");
+			package = false;
+		}
+		// Closed and debounced with no package
+		else if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == false)
+		{
+			changeState(STATE_CLOSED);
+		}
+
+		// Lid open for too long
+		if (GetTimer(timer, LID_OPEN_INTERVAL))
+		{
+			Serial.println("Lid was left AJAR");
 			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_CLOSED_COUNTING; // Purple blinking
-  				break;
-
-			case STATE_OPENED:
-			// Just closed and debounced
-			if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
-			{
-				Serial.println("Lid Was Closed!");
-				changeState(STATE_CLOSED);
-			}
-			// Lid open for too long
-			else if (GetTimer(timer, LID_OPEN_INTERVAL))
-			{
-				Serial.println("I've been left AJAR");
-			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_AJAR_ERROR; // Blue binking
-			}
-
-			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_OPEN; // Red blinking
-
-			// Assume package arrived
-			package = true;
-				break;
-
-			case STATE_LOCKED:
-			// Unlock in case of PANIC_SENSOR tripped
-			if (!PANIC_PIR_SNSR_ACTIVE());
-			{
-				Serial.println("PANIC_SW!");
-				changeState(STATE_UNLOCKING, true);
-				// Set NEOPixel status light
-				status = FEEDBACK_STATUS_BLINKING_PANIC; // Purple and Red alternating
-			}
-
-			// Unlock when proper keypad code is given
-			if (KEYPAD_TRIGGER_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL));
-			{
-				Serial.println("Keyad received correct code, unlocking now...");
-				changeState(STATE_UNLOCKING, true);
-			}
-
-			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_LOCKED; // Red solid
-
-			Serial.println("Vault is locked!");
-				break;
-
-			case STATE_QUALIFIER:
-			Serial.println("Qualifier!");
-			// Just opened and debounced with package
-			if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == true)
-			{
-				Serial.println("_____________________________________________________________");
-				Serial.println("Package Retrieved");
-				Serial.println("Package state has been reset to false");
-				Serial.println("When lid is closed, we will be ready for the next delivery!");
-				Serial.println("_____________________________________________________________");
-				package = false;
-			}
-			// Closed and debounced with no package
-			else if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == false)
-			{
-				changeState(STATE_CLOSED);
-			}
-
-			// Lid open for too long
-			if (GetTimer(timer, LID_OPEN_INTERVAL))
-			{
-				Serial.println("Lid was left AJAR");
-				// Set NEOPixel status light
-				status = FEEDBACK_STATUS_AJAR_ERROR; // Blue blinking
+			status = FEEDBACK_STATUS_AJAR_ERROR; // Blue blinking
 		
-			}
+		}
 
-			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_READY_RETRIEVE; // Yellow blinking
+		// Set NEOPixel status light
+		status = FEEDBACK_STATUS_READY_RETRIEVE; // Yellow blinking
+			break;
+	
+
 	}
 
 }
 
-
-
 /*****************************************************************************************************************************
-* FSM Change State Function(s)
+* FSM Change State Function
 *****************************************************************************************************************************/
 void changeState(int new_state, bool reset){
 	
-	lid_state = new_state;
+	box_state = new_state;
 	timer = 0;
 	debounce_timer = 0;
 
@@ -359,9 +355,6 @@ void changeState(int new_state, bool reset){
 	}
 }
 
-
-
-
 /*****************************************************************************************************************************
 *																										  					 *
 *                                                                   TIMERS USED IN CODE										 *
@@ -370,13 +363,11 @@ void changeState(int new_state, bool reset){
 
 bool GetTimer(unsigned long &timer, int interval){
 	
-	if (timer < 1)
-	{
+	if (timer < 1){
 		timer = millis();
 	}
 
-	if (millis() - timer >= interval)
-	{
+	if (millis() - timer >= interval){
 		timer = 0;
 		return true;
 	}
@@ -405,28 +396,14 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *****************************************************************************************************************************/
 
 
-
-
 void init_Colormap(){
-preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
-preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25));
+	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25));
 }
-   
-void init_NeoStatus(){
-
-  for(int i=0;i<PIXEL_COUNT;i++){
-    notif.fForceStatusUpdate = true; //clear presets
-    notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
-    notif.pixel[i].color.H = (i*30)/360.0f;
-    notif.pixel[i].color.S = 1;
-    notif.pixel[i].color.B = 1;
-  }
-
-} //end "init_NeoStatus"
 
 void NeoStatus_Tasker(){
 
@@ -444,6 +421,33 @@ void NeoStatus_Tasker(){
     	uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
     	}pixel[PIXEL_COUNT];
 	}notif;
+
+	for(int i=0;i<PIXEL_COUNT;i++){
+    //notif.fForceStatusUpdate = true; 
+    //notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
+    notif.pixel[i].color.H = (i*30)/360.0f;
+    notif.pixel[i].color.S = 1;
+    notif.pixel[i].color.B = 1;
+	}
+
+	float Hue360toFloat(uint16_t hue){
+		return hue/360.0f;
+	}
+	float Sat100toFloat(uint8_t sat){
+  		return sat/100.0f;
+	}
+	float Brt100toFloat(uint8_t brt){
+  		return brt/100.0f;
+	}
+	uint16_t HueFloatto360(float hue){
+  		return round(hue*360.0f);
+	}
+	uint8_t SatFloatto100(float sat){
+  		return round(sat*100.0f);
+	}
+	uint8_t BrtFloatto100(float brt){
+  		return round(brt*100.0f);
+	}
 	
    // Updates NEO's at 2 min interval OR if force update requested
   if(TimeReached(&notif.tSaved.ForceUpdate,120000)||(notif.fForceStatusUpdate)){
@@ -479,48 +483,15 @@ void NeoStatus_Tasker(){
   } //end timer check
 
   // Update
-  if(notif.fShowStatusUpdate){notif.fShowStatusUpdate=false;
+  if(notif.fShowStatusUpdate){
+	notif.fShowStatusUpdate=false;
     strip.Show();
     notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
   }
 }
-
-
-
-
-
-
-
-
-
-float Hue360toFloat(uint16_t hue){
-  return hue/360.0f;
-}
-float Sat100toFloat(uint8_t sat){
-  return sat/100.0f;
-}
-float Brt100toFloat(uint8_t brt){
-  return brt/100.0f;
-}
-uint16_t HueFloatto360(float hue){
-  return round(hue*360.0f);
-}
-uint8_t SatFloatto100(float sat){
-  return round(sat*100.0f);
-}
-uint8_t BrtFloatto100(float brt){
-  return round(brt*100.0f);
-}
-//End of color mapping
-
-//so back to setting the pixels, you can now do this
-notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX]; 
-
-
-
 	
 
-void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
+void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 
 	//unsigned long slow_blink_timer = 0;
