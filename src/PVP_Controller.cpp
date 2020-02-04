@@ -45,24 +45,31 @@ License along with VaultController.  If not, see
 
 unsigned long timer = 0;
 unsigned long debounce_timer = 0;
-unsigned long blink_timer = 0;
+unsigned long slow_blink_timer = 0;
+unsigned long fast_blink_timer = 0;
+unsigned long panic_blink_timer = 0;
 unsigned long total_reset_timer = 0;
 bool reset = false;
 bool package = false;
+int blinkFlag = 0;
+
+#define SLOW_BLINK_INTERVAL		1000	// Slow blink interval, ONE second
+#define FAST_BLINK_INTERVAL		500		// Fast blink interval, HALF second
+#define PANIC_BLINK_INTERVAL	250		// Fast blink interval, QUARTER second
 
 
 //Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
-int current_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
+int lid_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
 
 //Switch-case for NEOpixel Status indicator lights
 enum FEEDBACK_STATUS{FEEDBACK_STATUS_OFF=0, FEEDBACK_STATUS_READY, FEEDBACK_STATUS_UNLOCKING,FEEDBACK_STATUS_OPEN,FEEDBACK_STATUS_AJAR_ERROR,
-FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKED,FEEDBACK_STATUS_READY_RETRIEVE, FEEDBACK_STATUS_BLINKING_PANIC};
+FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKING,FEEDBACK_STATUS_LOCKED,FEEDBACK_STATUS_READY_RETRIEVE, FEEDBACK_STATUS_BLINKING_PANIC,STATUS_NONE_ID};
 uint8_t status = FEEDBACK_STATUS_OFF;
 
 //Defines for NEOpixel status (BLINK/SOLID) mode
 enum NOTIF_MODE{NOTIF_MODE_OFF_ID=0, NOTIF_MODE_STATIC_OFF_ID, NOTIF_MODE_STATIC_ON_ID, NOTIF_MODE_BLINKING_OFF_ID,
-NOTIF_MODE_BLINKING_ON_ID }; 
+NOTIF_MODE_BLINKING_ON_ID,NOTIF_MODE_TOGGLE_COLORS_ON,NOTIF_MODE_TOGGLE_COLORS_OFF,MODE_NONE_ID}; 
 
 //Defines for Mapping colors by name
 enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
@@ -188,7 +195,7 @@ void loop()
 	}
 	*/
 
-	switch (current_state)
+	switch (LID_STATE)
 	{
 		
 		case STATE_UNLOCKING:
@@ -196,12 +203,9 @@ void loop()
 			if (package == true && GetTimer(timer, RELAY_INTERVAL))
 			{
 				Serial.println("Ready for retrieval");
-
-				// Stops actuator power
+			// Stops actuator power
 				RELAY_UNLOCK_OFF();
-
 				changeState(STATE_QUALIFIER);
-				break;
 			}
 			// Unlocked and no package
 			else 
@@ -209,25 +213,20 @@ void loop()
 				if (GetTimer(timer, RELAY_INTERVAL	)) 
 				{
 					Serial.println("Ready for delivery");
-
-					// Stops actuator power
+			// Stops actuator power
 					RELAY_UNLOCK_OFF();
-
 					changeState(STATE_CLOSED);
-					break;
 				}
 			}
-			
 			// Starts actuator power for unlock
 			RELAY_UNLOCK_ON();
 			Serial.println("Now Unlocking");
 
-			// Set status light
-			//************************Put a BLINKING green light on here**********************************************************
-			break;
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_UNLOCKING; //Green blinking
+				break;
 
-
-		case STATE_LOCKING:
+			case STATE_LOCKING:
 			// Completely locked
 			if (GetTimer(timer, RELAY_INTERVAL))
 			{
@@ -236,7 +235,6 @@ void loop()
 				// Turns off interior INTERIOR_LIGHTS
 				INTERIOR_LIGHTS_OFF();
 				changeState(STATE_LOCKED);
-				break;
 			}
 
 			// Starts actuator power / keep locking
@@ -245,69 +243,59 @@ void loop()
 			INTERIOR_LIGHTS_ON();
 			Serial.println("Now Locking");
 
-			// Set status light
-			//*********************Put on a BLINKING red light here
-			
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_LOCKING; // Purple and Red alternating
+				break;
 
-			break;
-
-
-		case STATE_CLOSED:
+			case STATE_CLOSED:
 			Serial.println("Entered STATE_CLOSED");
 			// Just opened and debounced
 			if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
 			{
 				Serial.println("Lid Was Opened!");
 				changeState(STATE_OPENED);
-				break;
 			}
 			// Package arrived and lockout timer expired
 			else if (package == true && GetTimer(timer, LOCKDOWN_INTERVAL))
 			{
 				INTERIOR_LIGHTS_ON();
 				changeState(STATE_LOCKING);
-				break;
 			}
 
-			// Set status light
-			//**********************Put a BLINKING red light here****************************************
-  			
-			break;
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_CLOSED_COUNTING; // Purple blinking
+  				break;
 
-
-		case STATE_OPENED:
+			case STATE_OPENED:
 			// Just closed and debounced
 			if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
 			{
 				Serial.println("Lid Was Closed!");
 				changeState(STATE_CLOSED);
-				break;
 			}
 			// Lid open for too long
 			else if (GetTimer(timer, LID_OPEN_INTERVAL))
 			{
 				Serial.println("I've been left AJAR");
-				// Set status light
-			//**********************Put a BLINKING blue light here****************************************
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_AJAR_ERROR; // Blue binking
 			}
 
-			// Set status light
-			//***************************************Put a SOLID green light here*************************************
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_OPEN; // Red blinking
 
 			// Assume package arrived
 			package = true;
-			
-			break;
+				break;
 
-
-		case STATE_LOCKED:
+			case STATE_LOCKED:
 			// Unlock in case of PANIC_SENSOR tripped
 			if (!PANIC_PIR_SNSR_ACTIVE());
 			{
 				Serial.println("PANIC_SW!");
 				changeState(STATE_UNLOCKING, true);
-				//********************Make a BLINKING RED AND BLUE light flash for 10 minutes unless box is reset****************
-				break;
+				// Set NEOPixel status light
+				status = FEEDBACK_STATUS_BLINKING_PANIC; // Purple and Red alternating
 			}
 
 			// Unlock when proper keypad code is given
@@ -315,17 +303,15 @@ void loop()
 			{
 				Serial.println("Keyad received correct code, unlocking now...");
 				changeState(STATE_UNLOCKING, true);
-				break;
 			}
 
-			// Set status light
-			//***********************Put a BLINKING red light here
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_LOCKED; // Red solid
 
 			Serial.println("Vault is locked!");
-			break;
+				break;
 
-
-		case STATE_QUALIFIER:
+			case STATE_QUALIFIER:
 			Serial.println("Qualifier!");
 			// Just opened and debounced with package
 			if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == true)
@@ -341,21 +327,19 @@ void loop()
 			else if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == false)
 			{
 				changeState(STATE_CLOSED);
-				break;
 			}
 
 			// Lid open for too long
 			if (GetTimer(timer, LID_OPEN_INTERVAL))
 			{
 				Serial.println("Lid was left AJAR");
-				// Set status light
-				//**********************Put a BLINKING blue light here****************************************
+				// Set NEOPixel status light
+				status = FEEDBACK_STATUS_AJAR_ERROR; // Blue blinking
 		
 			}
 
-			// Set status light
-			//*************************Put a BLINKING green light here****************************************
-			break;
+			// Set NEOPixel status light
+			status = FEEDBACK_STATUS_READY_RETRIEVE; // Yellow blinking
 	}
 
 }
@@ -367,7 +351,7 @@ void loop()
 *****************************************************************************************************************************/
 void changeState(int new_state, bool reset){
 	
-	current_state = new_state;
+	lid_state = new_state;
 	timer = 0;
 	debounce_timer = 0;
 
@@ -432,7 +416,7 @@ struct NOTIF{
     struct PIXELN{
     uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
     uint16_t period_ms = 1000; // Time between fully on and off
-    HsbColor color; // color... just because it's spelled funny :-)
+    HsbColor color; 
     uint32_t tSavedUpdate; // millis last updated
     uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
     }pixel[PIXEL_COUNT];
@@ -451,8 +435,8 @@ void init_NeoStatus(){
 } //end "init_NeoStatus"
 
 void NeoStatus_Tasker(){
-
-  // Updates NEO's at 2 min interval OR if force update requested
+	
+   // Updates NEO's at 2 min interval OR if force update requested
   if(TimeReached(&notif.tSaved.ForceUpdate,120000)||(notif.fForceStatusUpdate)){
     notif.fForceStatusUpdate = true;
     Serial.println("Status Has been updated by Tasker");
@@ -464,21 +448,29 @@ void NeoStatus_Tasker(){
         default:
         case NOTIF_MODE_OFF_ID:
         case NOTIF_MODE_STATIC_OFF_ID:
-          strip.SetPixelColor(i,0);
+        	strip.SetPixelColor(i,0);
         break;
         case NOTIF_MODE_STATIC_ON_ID:
-          strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
+        	strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
         break;
         case NOTIF_MODE_BLINKING_OFF_ID:
-          strip.SetPixelColor(i,0);
-          notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
-          notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
+        	strip.SetPixelColor(i,0);
+        	notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+        	notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
         break;
         case NOTIF_MODE_BLINKING_ON_ID:
-          strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
-          notif.pixel[i].mode = NOTIF_MODE_BLINKING_OFF_ID;
-          notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
-          break;
+        	strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
+        	notif.pixel[i].mode = NOTIF_MODE_BLINKING_OFF_ID;
+        	notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
+        break;
+		case NOTIF_MODE_TOGGLE_COLORS_ON: //Flip 2 colors
+  			strip.SetPixelColor(0,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
+  			strip.SetPixelColor(1,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
+  		break;
+  		case NOTIF_MODE_TOGGLE_COLORS_OFF: //Invert the 2 color flip
+  			strip.SetPixelColor(1,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
+  			strip.SetPixelColor(0,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
+  		break;
       }
       notif.fShowStatusUpdate = true;
     } //end switch case
@@ -542,60 +534,50 @@ notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
 
 	
 
-//YOU SHOULDN'T BE CALLING THIS PART OF THE CODE ALL THE TIME, ONLY SET WHEN A COLOUR CHANGES
+void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
 	switch (status){
-
-
-
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
-			//status = NOTIF_MODE_STATIC_ON_ID(color_map_green); // enum is just a define, not a function, I assume this was not what you thought
-
-			//Now if you implemented the above
-			notif.pixel[0].color = preset_color_map[COLOUR_GREEN_INDEX2];
-			notif.pixel[1].color = preset_color_map[COLOUR_GREEN_INDEX2];
-
-			//to make this more clear what its doing, its set the entire hsbcolour, which if you follow into the libs is literally
-			
-			notif.pixel[1].color.H = preset_color_map[COLOUR_GREEN_INDEX2].H;
-			notif.pixel[1].color.S = preset_color_map[COLOUR_GREEN_INDEX2].S;
-			notif.pixel[1].color.B = preset_color_map[COLOUR_GREEN_INDEX2].B;
-
-			//sometimes, you will see me set the whole colour
-			notif.pixel[1].color = preset_color_map[COLOUR_GREEN_INDEX2];
-			uint8_t new_brightness_as_percentage = 50;
-			notif.pixel[1].color.B = Brt100toFloat(new_brightness_as_percentage);
-			// but instead override the brightness value to my own... 
-			// toggle brightness 1 to 0, or 100 to 0, blinks,
-
-			//ramping it up and down, pulses... colour stays the same :)
-
-//			Lots to start with here
 
 		break;
-		// case FEEDBACK_STATUS_UNLOCKING:
-		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_green);
-		// break;
-   		// case FEEDBACK_STATUS_OPEN:
-		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);    ///////////////////// BROKEN   BROKEN    BROKEN    BROKEN    BROKEN    BROKEN
-		// break;
-		// case FEEDBACK_STATUS_AJAR_ERROR:
-		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
-		// break;
-		// case FEEDBACK_STATUS_CLOSED_COUNTING:
-		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
-		// break;
-		// case FEEDBACK_STATUS_LOCKED:
-		// 	status = NOTIF_MODE_STATIC_ON_ID(color_map_red);
-		// break;
-		// case FEEDBACK_STATUS_READY_RETRIEVE:
-		// 	status = NOTIF_MODE_BLINKING_ON_ID(color_map_yellow);
-		// break;
-		// case FEEDBACK_STATUS_BLINKING_PANIC;
-		// 	status = NOTIF_MODE_BLINKING_ON_ID(red and blue goes here... somehow);  //FIX THIS!!!
-		// break;
+		case FEEDBACK_STATUS_UNLOCKING:
+			notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+		break;
+   		case FEEDBACK_STATUS_OPEN:
+			notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+		break;
+		case FEEDBACK_STATUS_AJAR_ERROR:
+			notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+		break;
+		case FEEDBACK_STATUS_CLOSED_COUNTING:
+			notif.pixel[i].color = preset_color_map[COLOR_PURPLE_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+		break;
+		case FEEDBACK_STATUS_LOCKING:
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
+			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
+		break;
+		case FEEDBACK_STATUS_LOCKED:
+			notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
+		break;
+		case FEEDBACK_STATUS_READY_RETRIEVE:
+			notif.pixel[i].color = preset_color_map[COLOR_YELLOW_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+		break;
+		case FEEDBACK_STATUS_BLINKING_PANIC:
+			if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
+
+			}
+		status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
+		status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
+		break;
 	}
+}
 
 /*****************************************************************************************************************************
 *********************************************************************END NEOPIXEL SECTION***************************************
