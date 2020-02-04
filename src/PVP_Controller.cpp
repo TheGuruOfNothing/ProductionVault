@@ -570,11 +570,18 @@ void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
 			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
-			if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
-
+			if(toggle^=1){
+				notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
+				notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
+  				status = NOTIF_MODE_TOGGLE_COLORS_ON
+			}else{
+				notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
+				notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
+  				status = NOTIF_MODE_TOGGLE_COLORS_OFF
 			}
-		status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
-		status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
+			//}
+		//status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
+		//status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
 		break;
 	}
 }
@@ -584,3 +591,4 @@ void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
 *****************************************************************************************************************************/
 #endif
 }
+//if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
