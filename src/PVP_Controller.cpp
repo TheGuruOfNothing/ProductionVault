@@ -35,123 +35,9 @@ License along with VaultController.  If not, see
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
-#define BUILD_NUMBER_CTR "v0_4"
-
-// Levels of stability (from testing to functional)
-#define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
-//#define STABILITY_LEVEL_PRE_RELEASE "pre_release" // under consideration for release (bug checking) >24 stability
-//#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
+#include "PVP_Controller.h"
 
 
-unsigned long timer = 0;
-unsigned long debounce_timer = 0;
-unsigned long total_reset_timer = 0;
-bool reset = false;
-bool package = false;
-int blinkFlag = 0;
-
-
-//Switch-case for vault states
-enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
-int box_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
-
-//Switch-case for NEOpixel Status indicator lights
-enum FEEDBACK_STATUS{FEEDBACK_STATUS_OFF=0, FEEDBACK_STATUS_READY, FEEDBACK_STATUS_UNLOCKING,FEEDBACK_STATUS_OPEN,FEEDBACK_STATUS_AJAR_ERROR,
-FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKING,FEEDBACK_STATUS_LOCKED,FEEDBACK_STATUS_READY_RETRIEVE, FEEDBACK_STATUS_BLINKING_PANIC,STATUS_NONE_ID};
-uint8_t status = FEEDBACK_STATUS_OFF;
-
-//Defines for NEOpixel status (BLINK/SOLID) mode
-enum NOTIF_MODE{NOTIF_MODE_OFF_ID=0, NOTIF_MODE_STATIC_OFF_ID, NOTIF_MODE_STATIC_ON_ID, NOTIF_MODE_BLINKING_OFF_ID,
-NOTIF_MODE_BLINKING_ON_ID,NOTIF_MODE_TOGGLE_COLORS_ON,NOTIF_MODE_TOGGLE_COLORS_OFF,MODE_NONE_ID}; 
-
-//Defines for Mapping colors by name
-enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
-#define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
-HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
-
-//Function Prototypes
-void SetFeedbackStatus(uint8_t new_status );
-float    Hue360toFloat(uint16_t hue);
-float    Sat100toFloat(uint8_t sat);
-float    Brt100toFloat(uint8_t brt);
-uint16_t HueFloatto360(float hue);
-uint8_t  SatFloatto100(float sat);
-uint8_t  BrtFloatto100(float brt);
-void changeState(int new_state, bool reset = false);
-bool GetTimer(unsigned long &timer, int interval);
-bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
-void Status_Update(void);
-void NeoStatus_Tasker(void);
-void init_Colormap(void);
-void NEO_Feedback_Display();
-
-
-// Timer Intervals - ALL non-blocking timers
-#define BLINK_INTERVAL		500			// Fast blink interval, half second
-#define SLOW_BLINK_INTERVAL	1800		// Slow blink interval, 1.8 seconds
-#define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
-#define LOCKDOWN_INTERVAL	15000		// Period of time before lockdown of vault after lid close, 15 seconds
-#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
-#define DEBOUNCE_INTERVAL	400			// Button Debounce
-#define TOTAL_RESET_INTERVAL 86400000	// Full board reset timer, fired evey 24 hours - debug only
-
-// I/O
-#define RELAY_LOCK_PIN		16	// Unlock Relay
-#define RELAY_UNLOCK_PIN	17	// Lock Relay
-#define INTERIOR_LIGHTS_PIN	4	// Interior lighting ring for camera and panic functions
-#define LID_SWITCH			18	// Mag switch on lid
-#define PANIC_PIR_SNSR		19	// Passive Infrared sensor for panic release
-#define KEYPAD_TRIGGER		14	// Latching pushbutton for  panic release, backlit
-#define LED_PIN        		3	// Control pin for the neopixel status indicators
-
-// NeoPixel Info
-#define PIXEL_PIN     19  // Digital IO pin 
-#define PIXEL_COUNT    2   // Number of NeoPixels
-
-// Declare our NeoPixel strip object
-NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> strip(PIXEL_COUNT, PIXEL_PIN);
-
-
-	
-
-// ****INPUTS ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS  ****INPUTS
-//_______________________________________________________________________
-
-//Switches or Buttons -  
-#define LID_SWITCH_INIT() 		 	pinMode(LID_SWITCH, INPUT_PULLUP)
-#define LID_SWITCH_ACTIVE()      	digitalRead(LID_SWITCH)
-#define PANIC_PIR_SNSR_INIT()	 	pinMode(PANIC_PIR_SNSR, INPUT)
-#define PANIC_PIR_SNSR_ACTIVE()  	digitalRead(PANIC_PIR_SNSR)
-#define KEYPAD_TRIGGER_INIT()	 	pinMode(KEYPAD_TRIGGER, INPUT_PULLUP)
-#define KEYPAD_TRIGGER_ACTIVE()  	digitalRead(KEYPAD_TRIGGER)
-			     	
-
-// ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS
-//______________________________________________________________________________
-
-#define NEO_PIN_INIT() 				pinMode(PIXEL_PIN, OUTPUT)//Neopixel status indicators
-
-//RELAYS
-#define ON_LOGIC_LEVEL HIGH  //Opened when LOW
-
-#define RELAY_LOCK_INIT()      	pinMode(RELAY_LOCK_PIN,OUTPUT)
-#define RELAY_LOCK_START()	 	digitalWrite(RELAY_LOCK_PIN,LOW)
-//#define RELAY_LOCK_ONOFF()     	!digitalRead(RELAY_LOCK_PIN) //opened when LOW
-#define RELAY_LOCK_ON()       	digitalWrite(RELAY_LOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
-#define RELAY_LOCK_OFF()      	digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
-
-#define RELAY_UNLOCK_INIT()      	pinMode(RELAY_UNLOCK_PIN,OUTPUT)
-#define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,LOW)
-//#define RELAY_UNLOCK_ONOFF()    !digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
-#define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
-#define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
-
-#define INTERIOR_LIGHTS_INIT()    pinMode(INTERIOR_LIGHTS_PIN,OUTPUT)
-#define INTERIOR_LIGHTS_START()	  digitalWrite(RELAY_LOCK_PIN,LOW)
-//#define INTERIOR_LIGHTS_ONOFF() !digitalRead(INTERIOR_LIGHTS_PIN) //opened when LOW
-#define INTERIOR_LIGHTS_ON()      digitalWrite(INTERIOR_LIGHTS_PIN,ON_LOGIC_LEVEL) //opened when LOW
-#define INTERIOR_LIGHTS_OFF()     digitalWrite(INTERIOR_LIGHTS_PIN,!ON_LOGIC_LEVEL) //opened when LOW
-      
 /*****************************************************************************************************************************
  * SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        
  *****************************************************************************************************************************
@@ -171,8 +57,9 @@ void setup()
 
 	init_Colormap();
 
-	strip.Begin(); // Initialize NeoPixel strip object (REQUIRED)
-  	strip.Show();  // Initialize all pixels to 'off'
+	stripbus->Begin();
+	stripbus->ClearTo(0);
+  	stripbus->Show();  // Initialize all pixels to 'off'
 
 }
 
@@ -192,6 +79,21 @@ void loop()
 	}
 	*/
 
+	NeoStatus_Tasker(); // called always without delay
+
+
+	// Lets use this to trigger every 10 seconds. 
+	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
+	// repeating 4 seconds later when this fires again.
+	if(TimeReached(&tSavedFeedbackDisplay,10000)){
+		status = FEEDBACK_STATUS_UNLOCKING; // forcing mode
+		NEO_Feedback_Display();		
+	}
+
+
+
+// Get leds to work with method above to trigger code directly before getting the seciotn below working. I will look at this another time
+/*
 	switch (box_state){
 		case STATE_UNLOCKING:
 		// Unlocked with package
@@ -336,9 +238,10 @@ void loop()
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_READY_RETRIEVE; // Yellow blinking
 			break;
-	
 
 	}
+
+	*/
 
 }
 
@@ -404,57 +307,46 @@ void init_Colormap(){
 	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-	preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25));
+//	preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25)); // NONE does not exist, since none is 1 longer than the array since the array index starts at 0
+
+}
+
+void ShowRainbow(){
+
+//	Spread the colours across all the pixels
+// 10 pixels, would mean the hue "wheel" would be divided in 10
+// you had this in tasker, which is wrong, it would overwrite it EACH call.. This is only for testing
+	
+	for(int i=0;i<PIXEL_COUNT;i++){
+		//notif.fForceStatusUpdate = true; 
+		//notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
+		notif.pixel[i].color.H = (i*30)/360.0f;
+		notif.pixel[i].color.S = 1;
+		notif.pixel[i].color.B = 1;
+	}
+
 }
 
 void NeoStatus_Tasker(){
 
-	struct NOTIF{
-    	uint8_t fForceStatusUpdate = false;
-    	uint8_t fShowStatusUpdate  = false;
-    	struct TSAVED{
-    	uint32_t ForceUpdate = millis();
-    	}tSaved;
-    	struct PIXELN{
-    	uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
-    	uint16_t period_ms = 1000; // Time between fully on and off
-    	HsbColor color; 
-    	uint32_t tSavedUpdate; // millis last updated
-    	uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
-    	}pixel[PIXEL_COUNT];
-	}notif;
+	switch(neo_mode){
+        case ANIMATION_MODE_NOTIFICATIONS_ID:
+          NeoStatus_SubTask();
+        break;
+        case ANIMATION_MODE_NONE: default: break; // resting position call be called EVERY loop without doing anything, optional, disable "NeoStatus_Tasker" with a flag
+    }
+}
 
-	for(int i=0;i<PIXEL_COUNT;i++){
-    //notif.fForceStatusUpdate = true; 
-    //notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
-    notif.pixel[i].color.H = (i*30)/360.0f;
-    notif.pixel[i].color.S = 1;
-    notif.pixel[i].color.B = 1;
-	}
 
-	float Hue360toFloat(uint16_t hue){
-		return hue/360.0f;
-	}
-	float Sat100toFloat(uint8_t sat){
-  		return sat/100.0f;
-	}
-	float Brt100toFloat(uint8_t brt){
-  		return brt/100.0f;
-	}
-	uint16_t HueFloatto360(float hue){
-  		return round(hue*360.0f);
-	}
-	uint8_t SatFloatto100(float sat){
-  		return round(sat*100.0f);
-	}
-	uint8_t BrtFloatto100(float brt){
-  		return round(brt*100.0f);
-	}
-	
+
+
+// This function will be called EVERY LOOP because it checks "tRateUpdate" for if each pixel needs to be updated, so dont add anything else in here, how this works is set elsewhere
+void NeoStatus_SubTask(){
+
    // Updates NEO's at 2 min interval OR if force update requested
   if(TimeReached(&notif.tSaved.ForceUpdate,120000)||(notif.fForceStatusUpdate)){
     notif.fForceStatusUpdate = true;
-    Serial.println("Status Has been updated by Tasker");
+    Serial.println("OPTIONAL FORCING, I USE IT TO MAKE SURE PIXELS NEVER GET STUCK ON SOMETHING NOT INTENDED");
   }
   
   //Animation Types
@@ -464,18 +356,18 @@ void NeoStatus_Tasker(){
         default:
         case NOTIF_MODE_OFF_ID:
         case NOTIF_MODE_STATIC_OFF_ID:
-        	strip.SetPixelColor(i,0);
+        	stripbus->SetPixelColor(i,0);
         break;
         case NOTIF_MODE_STATIC_ON_ID:
-        	strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
+        	stripbus->SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
         break;
         case NOTIF_MODE_BLINKING_OFF_ID:
-        	strip.SetPixelColor(i,0);
+        	stripbus->SetPixelColor(i,0);
         	notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
         	notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
         break;
         case NOTIF_MODE_BLINKING_ON_ID:
-        	strip.SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
+        	stripbus->SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
         	notif.pixel[i].mode = NOTIF_MODE_BLINKING_OFF_ID;
         	notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
         break;
@@ -484,87 +376,133 @@ void NeoStatus_Tasker(){
     } //end switch case
   } //end timer check
 
-  // Update
+  //Auto turn off
+  if(TimeReached(&notif.tSaved.AutoOff,1000)){// if 1 second past
+    for(int i=0;i<PIXEL_COUNT;i++){ //check all
+      if(notif.pixel[i].auto_time_off_secs==1){ //if =1 then turn off and clear to 0
+        stripbus->SetPixelColor(i,0);
+        notif.pixel[i].auto_time_off_secs = 0;
+        notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
+     }else
+      if(notif.pixel[i].auto_time_off_secs>1){ //if =1 then turn off and clear to 0
+        notif.pixel[i].auto_time_off_secs--; //decrease
+      }
+    }// END for
+  }
+
+
+
+  // Update == if we change something in the switch above, then actually output onto the string, but only once...
   if(notif.fShowStatusUpdate){
-	notif.fShowStatusUpdate=false;
-    strip.Show();
-    notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
+	notif.fShowStatusUpdate=false; //.... hence reset
+    stripbus->Show();
+    notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER  
   }
 }
 	
 
 void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
-
-	//unsigned long slow_blink_timer = 0;
-	unsigned long fast_blink_timer = 0;
-	unsigned long panic_blink_timer = 0;
-	//#define SLOW_BLINK_INTERVAL		1000	// Slow blink interval, ONE second
-	#define FAST_BLINK_INTERVAL		500		// Fast blink interval, HALF second
-	#define PANIC_BLINK_INTERVAL	250		// Fast blink interval, QUARTER second
 	
 	switch (status){
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
-			notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
+			// notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
+			// notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
-			notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+
+			notif.pixel[0].period_ms = 1000; // 1 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
+			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
+			notif.pixel[0].auto_time_off_secs = 6;
+			
+			notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
+			notif.pixel[1].auto_time_off_secs = 8;
+			
+
+
+			// notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
+			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
    		case FEEDBACK_STATUS_OPEN:
-			notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			// notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
+			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
 		case FEEDBACK_STATUS_AJAR_ERROR:
-			notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			// notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
+			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
 		case FEEDBACK_STATUS_CLOSED_COUNTING:
-			if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
-				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-				notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
-				strip.Show();
-			}else{
-				notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
-				notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
-				strip.Show();
-			}
+			// if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
+			// 	notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+			// 	notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
+			// 	stripbus->Show();
+			// }else{
+			// 	notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			// 	notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
+			// 	stripbus->Show();
+			// }
 			
 		break;
 		case FEEDBACK_STATUS_LOCKING:
-			if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
-				notif.pixel[0].color = preset_color_map[COLOR_PURPLE_INDEX];
-				notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
-				strip.Show();
-			}else{
-				notif.pixel[1].color = preset_color_map[COLOR_PURPLE_INDEX];
-				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-				strip.Show();
-			}
+			// if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
+			// 	notif.pixel[0].color = preset_color_map[COLOR_PURPLE_INDEX];
+			// 	notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			// 	stripbus->Show();
+			// }else{
+			// 	notif.pixel[1].color = preset_color_map[COLOR_PURPLE_INDEX];
+			// 	notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+			// 	stripbus->Show();
+			// }
 		break;
 		case FEEDBACK_STATUS_LOCKED:
-			notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
+			// notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
+			// notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
 		break;
 		case FEEDBACK_STATUS_READY_RETRIEVE:
-			notif.pixel[i].color = preset_color_map[COLOR_YELLOW_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			// notif.pixel[i].color = preset_color_map[COLOR_YELLOW_INDEX];
+			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
-			if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
-				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-				notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
-				strip.Show();
-			}else{
-				notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
-				notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
-				strip.Show();
-			}
+			// if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
+			// 	notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+			// 	notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
+			// 	stripbus->Show();
+			// }else{
+			// 	notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			// 	notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
+			// 	stripbus->Show();
+			// }
 		break;
 	}
+}
+
+
+// Helper functions
+
+float Hue360toFloat(uint16_t hue){
+	return hue/360.0f;
+}
+float Sat100toFloat(uint8_t sat){
+	return sat/100.0f;
+}
+float Brt100toFloat(uint8_t brt){
+	return brt/100.0f;
+}
+uint16_t HueFloatto360(float hue){
+	return round(hue*360.0f);
+}
+uint8_t SatFloatto100(float sat){
+	return round(sat*100.0f);
+}
+uint8_t BrtFloatto100(float brt){
+	return round(brt*100.0f);
 }
 
 /*****************************************************************************************************************************
