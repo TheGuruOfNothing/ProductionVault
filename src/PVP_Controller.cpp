@@ -35,7 +35,7 @@ License along with VaultController.  If not, see
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
-#define BUILD_NUMBER_CTR "v0_3"
+#define BUILD_NUMBER_CTR "v0_4"
 
 // Levels of stability (from testing to functional)
 #define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
