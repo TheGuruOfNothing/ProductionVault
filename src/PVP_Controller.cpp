@@ -45,17 +45,10 @@ License along with VaultController.  If not, see
 
 unsigned long timer = 0;
 unsigned long debounce_timer = 0;
-unsigned long slow_blink_timer = 0;
-unsigned long fast_blink_timer = 0;
-unsigned long panic_blink_timer = 0;
 unsigned long total_reset_timer = 0;
 bool reset = false;
 bool package = false;
 int blinkFlag = 0;
-
-#define SLOW_BLINK_INTERVAL		1000	// Slow blink interval, ONE second
-#define FAST_BLINK_INTERVAL		500		// Fast blink interval, HALF second
-#define PANIC_BLINK_INTERVAL	250		// Fast blink interval, QUARTER second
 
 
 //Switch-case for vault states
@@ -73,6 +66,9 @@ NOTIF_MODE_BLINKING_ON_ID,NOTIF_MODE_TOGGLE_COLORS_ON,NOTIF_MODE_TOGGLE_COLORS_O
 
 //Defines for Mapping colors by name
 enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
+#define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
+HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
+void initColormap();
 
 //Function Prototypes
 void SetFeedbackStatus(uint8_t new_status );
@@ -82,6 +78,7 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 void Status_Update(void);
 void NeoStatus_Tasker(void);
 void init_NeoStatus(void);
+void init_Colormap(void)
 
 //Gonna guess these are not needed all the way up here at the top?
 float    Hue360toFloat(uint16_t hue);
@@ -173,6 +170,7 @@ void setup()
 	NEO_PIN_INIT();
 
 	init_NeoStatus();
+	init_Colormap();
 
 	strip.Begin(); // Initialize NeoPixel strip object (REQUIRED)
   	strip.Show();  // Initialize all pixels to 'off'
@@ -405,22 +403,18 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 *                                                                   NeoPixel Status LED's									 *
 *																															 *
 *****************************************************************************************************************************/
-#ifdef USE_RGB_NEO_STATUS
 
-struct NOTIF{
-    uint8_t fForceStatusUpdate = false;
-    uint8_t fShowStatusUpdate  = false;
-    struct TSAVED{
-    uint32_t ForceUpdate = millis();
-    }tSaved;
-    struct PIXELN{
-    uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
-    uint16_t period_ms = 1000; // Time between fully on and off
-    HsbColor color; 
-    uint32_t tSavedUpdate; // millis last updated
-    uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
-    }pixel[PIXEL_COUNT];
-}notif;
+
+
+
+void init_Colormap(){
+preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25));
+}
    
 void init_NeoStatus(){
 
@@ -435,12 +429,28 @@ void init_NeoStatus(){
 } //end "init_NeoStatus"
 
 void NeoStatus_Tasker(){
+
+	struct NOTIF{
+    	uint8_t fForceStatusUpdate = false;
+    	uint8_t fShowStatusUpdate  = false;
+    	struct TSAVED{
+    	uint32_t ForceUpdate = millis();
+    	}tSaved;
+    	struct PIXELN{
+    	uint8_t  mode = NOTIF_MODE_STATIC_ON_ID; // Type of light pattern
+    	uint16_t period_ms = 1000; // Time between fully on and off
+    	HsbColor color; 
+    	uint32_t tSavedUpdate; // millis last updated
+    	uint16_t tRateUpdate = 10; // time between updating, used for blink (mode)
+    	}pixel[PIXEL_COUNT];
+	}notif;
 	
    // Updates NEO's at 2 min interval OR if force update requested
   if(TimeReached(&notif.tSaved.ForceUpdate,120000)||(notif.fForceStatusUpdate)){
     notif.fForceStatusUpdate = true;
     Serial.println("Status Has been updated by Tasker");
   }
+  
   //Animation Types
   for(int i=0;i<PIXEL_COUNT;i++){
     if(TimeReached(&notif.pixel[i].tSavedUpdate,notif.pixel[i].tRateUpdate)||(notif.fForceStatusUpdate)){ notif.fForceStatusUpdate = false;
@@ -463,14 +473,6 @@ void NeoStatus_Tasker(){
         	notif.pixel[i].mode = NOTIF_MODE_BLINKING_OFF_ID;
         	notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
         break;
-		case NOTIF_MODE_TOGGLE_COLORS_ON: //Flip 2 colors
-  			strip.SetPixelColor(0,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
-  			strip.SetPixelColor(1,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
-  		break;
-  		case NOTIF_MODE_TOGGLE_COLORS_OFF: //Invert the 2 color flip
-  			strip.SetPixelColor(1,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
-  			strip.SetPixelColor(0,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));
-  		break;
       }
       notif.fShowStatusUpdate = true;
     } //end switch case
@@ -481,31 +483,15 @@ void NeoStatus_Tasker(){
     strip.Show();
     notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
   }
+}
 
 
-//Color Mapping
-HsbColor preset_color_map[5];
-// preset_color_map[0] = HsbColor(0,1,1); //Red
-preset_colour_map[COLOR_RED_INDEX]      = HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-// preset_color_map[1] = HsbColor(50/360.0f,1,1); //Purple
-preset_colour_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
-// preset_color_map[2] = HsbColor(120/360.0f,1,1); //Green
-preset_colour_map[COLOR_GREEN_INDEX]    = HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-// preset_color_map[3] = HsbColor(240/360.0f,1,1); //Blue
-preset_colour_map[COLOR_BLUE_INDEX]     = HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-// preset_color_map[4] = HsbColor(300/360.0f,1,1); //Yellow
-preset_colour_map[COLOR_YELLOW_INDEX]   = HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
-
-enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,
-						COLOR_PURPLE_INDEX,
-						COLOR_GREEN_INDEX,
-						COLOR_BLUE_INDEX,
-						COLOR_YELLOW_INDEX, 
-						COLOR_MAP_NONE_ID};
 
 
-#define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
-HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
+
+
+
+
 
 float Hue360toFloat(uint16_t hue){
   return hue/360.0f;
@@ -535,11 +521,21 @@ notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
 	
 
 void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
+
+
+	//unsigned long slow_blink_timer = 0;
+	unsigned long fast_blink_timer = 0;
+	unsigned long panic_blink_timer = 0;
+	//#define SLOW_BLINK_INTERVAL		1000	// Slow blink interval, ONE second
+	#define FAST_BLINK_INTERVAL		500		// Fast blink interval, HALF second
+	#define PANIC_BLINK_INTERVAL	250		// Fast blink interval, QUARTER second
+	
 	switch (status){
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
-
+			notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
+			notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
 			notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
@@ -554,10 +550,27 @@ void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
 			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
 		case FEEDBACK_STATUS_CLOSED_COUNTING:
-			notif.pixel[i].color = preset_color_map[COLOR_PURPLE_INDEX];
-			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
+				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+				notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
+				strip.Show();
+			}else{
+				notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+				notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
+				strip.Show();
+			}
+			
 		break;
 		case FEEDBACK_STATUS_LOCKING:
+			if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
+				notif.pixel[0].color = preset_color_map[COLOR_PURPLE_INDEX];
+				notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+				strip.Show();
+			}else{
+				notif.pixel[1].color = preset_color_map[COLOR_PURPLE_INDEX];
+				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+				strip.Show();
+			}
 			status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
 			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
 		break;
@@ -570,14 +583,14 @@ void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
 			notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
-			if(toggle^=1){
-				notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
-				notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
-  				status = NOTIF_MODE_TOGGLE_COLORS_ON
+			if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
+				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+				notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
+				strip.Show();
 			}else{
-				notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
-				notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
-  				status = NOTIF_MODE_TOGGLE_COLORS_OFF
+				notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+				notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
+				strip.Show();
 			}
 			//}
 		//status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
@@ -589,6 +602,5 @@ void NEO_Feedback_Display();{ //Sets color and pattern of NEO status indicator
 /*****************************************************************************************************************************
 *********************************************************************END NEOPIXEL SECTION***************************************
 *****************************************************************************************************************************/
-#endif
+
 }
-//if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
