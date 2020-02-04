@@ -83,6 +83,8 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 void Status_Update(void);
 void NeoStatus_Tasker(void);
 void init_Colormap(void);
+void NEO_Feedback_Display();
+
 
 // Timer Intervals - ALL non-blocking timers
 #define BLINK_INTERVAL		500			// Fast blink interval, half second
@@ -542,8 +544,6 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 				notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
 				strip.Show();
 			}
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_purple);
-			status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
 		break;
 		case FEEDBACK_STATUS_LOCKED:
 			notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
@@ -563,9 +563,6 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 				notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
 				strip.Show();
 			}
-			//}
-		//status = NOTIF_MODE_BLINKING_ON_ID(color_map_blue);
-		//status = NOTIF_MODE_BLINKING_ON_ID(color_map_red);
 		break;
 	}
 }
