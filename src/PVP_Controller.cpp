@@ -317,11 +317,11 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 
 void init_Colormap(){
 	Serial.println("VOID Colormap function message");
-	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
-	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
-	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
-	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(50));
+	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(50));
+	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(50));
+	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(50));
+	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(50));
 //	preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25)); // NONE does not exist, since none is 1 longer than the array since the array index starts at 0
 
 }
