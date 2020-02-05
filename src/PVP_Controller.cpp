@@ -318,8 +318,9 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 void init_Colormap(){
 	Serial.println("VOID Colormap function message");
 	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
-	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(280),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_CYAN_INDEX]    	= HsbColor(Hue360toFloat(180),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(300),Sat100toFloat(100),Brt100toFloat(100));
 //	preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25)); // NONE does not exist, since none is 1 longer than the array since the array index starts at 0
@@ -388,6 +389,28 @@ void NeoStatus_SubTask(){
         	notif.pixel[i].mode = NOTIF_MODE_BLINKING_OFF_ID;
         	notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/2);
         break;
+        case NOTIF_MODE_PULSING_OFF_ID:
+          if(notif.pixel[i].pulse_progess<100){
+            notif.pixel[i].pulse_progess++;
+          }else{
+            notif.pixel[i].mode = NOTIF_MODE_PULSING_ON_ID;
+          }
+          notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/200);
+          //AddLog_mP2(LOG_LEVEL_DEBUG_MORE, PSTR(D_LOG_NEO "PULSING progress [%d]"),notif.pixel[i].pulse_progess); 
+          notif.pixel[i].color.B = notif.pixel[i].pulse_progess/100.0f;
+          stripbus->SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));    
+        break;
+        case NOTIF_MODE_PULSING_ON_ID:
+          if(notif.pixel[i].pulse_progess>0){
+            notif.pixel[i].pulse_progess--;
+          }else{
+            notif.pixel[i].mode = NOTIF_MODE_PULSING_OFF_ID;
+          }
+          notif.pixel[i].tRateUpdate = (notif.pixel[i].period_ms/200);
+          //AddLog_mP2(LOG_LEVEL_DEBUG_MORE, PSTR(D_LOG_NEO "PULSING progress [%d]"),notif.pixel[i].pulse_progess); 
+          notif.pixel[i].color.B = notif.pixel[i].pulse_progess/100.0f;
+          stripbus->SetPixelColor(i,HsbColor(notif.pixel[i].color.H,notif.pixel[i].color.S,notif.pixel[i].color.B));     
+        break;
       }
       notif.fShowStatusUpdate = true;
 	  Serial.println("End of pixel.mode");
@@ -440,9 +463,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[0].auto_time_off_secs = 6;
 			Serial.println("Blinking pixel 0 green");
 			
-			notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
-			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
-			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_CYAN_INDEX];
 			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
 			notif.pixel[1].auto_time_off_secs = 8;
 			Serial.println("blinking pixel 1 red");
