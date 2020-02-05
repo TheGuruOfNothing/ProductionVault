@@ -63,7 +63,11 @@ void setup()
 	stripbus->ClearTo(0);
   	stripbus->Show();  // Initialize all pixels to 'off'
 	  
-	ShowRainbow();
+	// ShowRainbow();
+  	// stripbus->Show();  // Initialize all pixels to 'off'
+
+neo_mode = ANIMATION_MODE_NOTIFICATIONS_ID;  //FORGOT THIS
+notif.fForceStatusUpdate = true;
 
 }
 
@@ -323,8 +327,8 @@ void ShowRainbow(){
 // you had this in tasker, which is wrong, it would overwrite it EACH call.. This is only for testing
 	
 	for(int i=0;i<PIXEL_COUNT;i++){
-		//notif.fForceStatusUpdate = true; 
-		//notif.pixel[i].mode = NOTIF_MODE_OFF_ID;
+		notif.fForceStatusUpdate = true; 
+		notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
 		notif.pixel[i].color.H = (i*30)/360.0f;
 		notif.pixel[i].color.S = 1;
 		notif.pixel[i].color.B = 1;
