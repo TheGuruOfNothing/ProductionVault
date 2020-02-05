@@ -55,7 +55,7 @@ void setup()
 	KEYPAD_TRIGGER_INIT();
 	NEO_PIN_INIT();
 
-	Serial.println("Init colormap");
+	Serial.println("Init colormap in Setup");
 	init_Colormap();
 	
 
@@ -63,9 +63,9 @@ void setup()
 	stripbus->Begin();
 	stripbus->ClearTo(0);
   	stripbus->Show();  // Initialize all pixels to 'off'
-	  Serial.println("Strip cleared...");
+	  Serial.println("Strip cleared in setup...");
 
-	Serial.println("Init show rainbow");  
+	Serial.println("Init show rainbow in Setup");  
 	ShowRainbow();
 
 }
@@ -310,7 +310,7 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 
 
 void init_Colormap(){
-	Serial.println("Colormap Initialized");
+	Serial.println("VOID Colormap function message");
 	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
@@ -321,7 +321,7 @@ void init_Colormap(){
 }
 
 void ShowRainbow(){
-	Serial.println("In void showrainbow");
+	Serial.println("Void showrainbow function message");
 
 //	Spread the colours across all the pixels
 // 10 pixels, would mean the hue "wheel" would be divided in 10
