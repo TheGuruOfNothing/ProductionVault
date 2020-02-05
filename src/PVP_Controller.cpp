@@ -56,6 +56,7 @@ void setup()
 	NEO_PIN_INIT();
 
 	init_Colormap();
+	Serial.println("Init colormap");
 	
 
     stripbus = new NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod>(PIXEL_COUNT,PIXEL_PIN);
@@ -64,6 +65,7 @@ void setup()
   	stripbus->Show();  // Initialize all pixels to 'off'
 	  
 	ShowRainbow();
+	Serial.println("Init show rainbow");
 
 }
 
@@ -317,6 +319,7 @@ void init_Colormap(){
 }
 
 void ShowRainbow(){
+	Serial.println("In void showrainbow");
 
 //	Spread the colours across all the pixels
 // 10 pixels, would mean the hue "wheel" would be divided in 10
@@ -418,6 +421,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			// notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
+		Serial.println("In feedback status unlocking");
 
 			notif.pixel[0].period_ms = 1000; // 1 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
