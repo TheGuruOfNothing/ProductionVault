@@ -56,10 +56,13 @@ void setup()
 
 
 	init_Colormap();
+	
 
 	stripbus->Begin();
 	stripbus->ClearTo(0);
   	stripbus->Show();  // Initialize all pixels to 'off'
+	  
+	ShowRainbow();
 
 }
 
@@ -88,6 +91,7 @@ void loop()
 	if(TimeReached(&tSavedFeedbackDisplay,10000)){
 		status = FEEDBACK_STATUS_UNLOCKING; // forcing mode
 		NEO_Feedback_Display();		
+		Serial.println("NeoStatus_Tasker is running...");
 	}
 
 
@@ -332,6 +336,7 @@ void NeoStatus_Tasker(){
 	switch(neo_mode){
         case ANIMATION_MODE_NOTIFICATIONS_ID:
           NeoStatus_SubTask();
+		  Serial.println("In neo_mode case 0");
         break;
         case ANIMATION_MODE_NONE: default: break; // resting position call be called EVERY loop without doing anything, optional, disable "NeoStatus_Tasker" with a flag
     }
