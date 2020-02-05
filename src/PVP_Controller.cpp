@@ -63,19 +63,16 @@ void setup()
 	stripbus->Begin();
 	stripbus->ClearTo(0);
   	stripbus->Show();  // Initialize all pixels to 'off'
-<<<<<<< HEAD
 	  
 	// ShowRainbow();
   	// stripbus->Show();  // Initialize all pixels to 'off'
 
 neo_mode = ANIMATION_MODE_NOTIFICATIONS_ID;  //FORGOT THIS
 notif.fForceStatusUpdate = true;
-=======
 	  Serial.println("Strip cleared in setup...");
 
 	Serial.println("Init show rainbow in Setup");  
-	ShowRainbow();
->>>>>>> 33ab2eb63a0e08a76f7bb01824daa82844680c95
+	// ShowRainbow();
 
 }
 
