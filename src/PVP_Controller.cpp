@@ -55,6 +55,7 @@ void setup()
 	KEYPAD_TRIGGER_INIT();
 	NEO_PIN_INIT();
 
+	Serial.println("Init colormap in Setup");
 	init_Colormap();
 	
 
@@ -62,12 +63,19 @@ void setup()
 	stripbus->Begin();
 	stripbus->ClearTo(0);
   	stripbus->Show();  // Initialize all pixels to 'off'
+<<<<<<< HEAD
 	  
 	// ShowRainbow();
   	// stripbus->Show();  // Initialize all pixels to 'off'
 
 neo_mode = ANIMATION_MODE_NOTIFICATIONS_ID;  //FORGOT THIS
 notif.fForceStatusUpdate = true;
+=======
+	  Serial.println("Strip cleared in setup...");
+
+	Serial.println("Init show rainbow in Setup");  
+	ShowRainbow();
+>>>>>>> 33ab2eb63a0e08a76f7bb01824daa82844680c95
 
 }
 
@@ -96,7 +104,7 @@ void loop()
 	if(TimeReached(&tSavedFeedbackDisplay,10000)){
 		status = FEEDBACK_STATUS_UNLOCKING; // forcing mode
 		NEO_Feedback_Display();		
-		Serial.println("NeoStatus_Tasker is running...");
+		Serial.println("NeoStatus_Tasker timer timed out and reset...");
 	}
 
 
@@ -311,6 +319,7 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 
 
 void init_Colormap(){
+	Serial.println("VOID Colormap function message");
 	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(50),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
@@ -321,6 +330,7 @@ void init_Colormap(){
 }
 
 void ShowRainbow(){
+	Serial.println("Void showrainbow function message");
 
 //	Spread the colours across all the pixels
 // 10 pixels, would mean the hue "wheel" would be divided in 10
@@ -383,6 +393,7 @@ void NeoStatus_SubTask(){
         break;
       }
       notif.fShowStatusUpdate = true;
+	  Serial.println("End of pixel.mode");
     } //end switch case
   } //end timer check
 
@@ -406,7 +417,8 @@ void NeoStatus_SubTask(){
   if(notif.fShowStatusUpdate){
 	notif.fShowStatusUpdate=false; //.... hence reset
     stripbus->Show();
-    notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER  
+    notif.tSaved.ForceUpdate = millis(); // RESETS UPDATE TIMER
+	Serial.println("Strip update completed");  
   }
 }
 	
@@ -422,18 +434,21 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			// notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
+		Serial.println("In feedback status unlocking");
 
 			notif.pixel[0].period_ms = 1000; // 1 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
 			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
 			notif.pixel[0].auto_time_off_secs = 6;
+			Serial.println("Blinking pixel 0 green");
 			
 			notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
 			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
 			notif.pixel[1].auto_time_off_secs = 8;
+			Serial.println("blinking pixel 1 red");
 			
 
 
@@ -490,6 +505,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			// 	stripbus->Show();
 			// }
 		break;
+		Serial.println("End of status case");
 	}
 }
 
