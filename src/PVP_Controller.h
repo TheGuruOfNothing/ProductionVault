@@ -62,12 +62,16 @@ uint8_t status = FEEDBACK_STATUS_OFF;
 
 //Defines for NEOpixel status (BLINK/SOLID) mode
 enum NOTIF_MODE{NOTIF_MODE_OFF_ID=0, NOTIF_MODE_STATIC_OFF_ID, NOTIF_MODE_STATIC_ON_ID, NOTIF_MODE_BLINKING_OFF_ID,
-NOTIF_MODE_BLINKING_ON_ID,NOTIF_MODE_TOGGLE_COLORS_ON,NOTIF_MODE_TOGGLE_COLORS_OFF,NOTIF_MODE_PULSING_ON_ID,NOTIF_MODE_PULSING_OFF_ID,MODE_NONE_ID}; 
+NOTIF_MODE_BLINKING_ON_ID,NOTIF_MODE_TOGGLE_COLORS_ON,NOTIF_MODE_TOGGLE_COLORS_OFF,
+NOTIF_MODE_ALTERNATE_COLOR_1,NOTIF_MODE_ALTERNATE_COLOR_2,
+NOTIF_MODE_PULSING_ON_ID,NOTIF_MODE_PULSING_OFF_ID,MODE_NONE_ID}; 
 
 //Defines for Mapping colors by name
 enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_CYAN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
 #define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
 HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
+
+
 
 //Function Prototypes
 void SetFeedbackStatus(uint8_t new_status );
@@ -207,6 +211,7 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 			uint16_t period_ms = 1000; // Time between fully on and off
 			uint8_t pulse_progess = 0; // Used for pulsing only
 			HsbColor color; // colour of the led
+			HsbColor alternate_colors[2];
 			uint32_t tSavedUpdate; // millis last updated
 			uint16_t tRateUpdate = 10; // time between updating
 			uint16_t auto_time_off_secs = 0; // reset pixel to off
