@@ -44,7 +44,8 @@ License along with VaultController.  If not, see
  */
 
 void setup()
-{	Serial.begin(115200);
+{	
+	Serial.begin(115200);
 
 	RELAY_LOCK_INIT(); RELAY_LOCK_START(); //Start LOW
 	RELAY_UNLOCK_INIT(); RELAY_UNLOCK_START(); //Start LOW
@@ -53,7 +54,6 @@ void setup()
 	PANIC_PIR_SNSR_INIT();
 	KEYPAD_TRIGGER_INIT();
 	NEO_PIN_INIT();
-
 
 	init_Colormap();
 
