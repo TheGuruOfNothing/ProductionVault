@@ -84,6 +84,7 @@ void Status_Update(void);
 void NeoStatus_Tasker(void);
 void init_Colormap(void);
 void NEO_Feedback_Display();
+void ShowRainbow(void);
 
 
 // Timer Intervals - ALL non-blocking timers
@@ -100,9 +101,9 @@ void NEO_Feedback_Display();
 #define RELAY_UNLOCK_PIN	17	// Lock Relay
 #define INTERIOR_LIGHTS_PIN	4	// Interior lighting ring for camera and panic functions
 #define LID_SWITCH			18	// Mag switch on lid
-#define PANIC_PIR_SNSR		19	// Passive Infrared sensor for panic release
+#define PANIC_PIR_SNSR		32	// Passive Infrared sensor for panic release **************************change this pin, is not on this pin***************************
 #define KEYPAD_TRIGGER		14	// Latching pushbutton for  panic release, backlit
-#define LED_PIN        		3	// Control pin for the neopixel status indicators
+//#define LED_PIN        		3	// Control pin for the neopixel status indicators
 
 // NeoPixel Info
 #define PIXEL_PIN     19  // Digital IO pin 
