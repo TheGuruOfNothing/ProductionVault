@@ -49,7 +49,8 @@ void setup()
 
 	RELAY_LOCK_INIT(); RELAY_LOCK_START(); //Start LOW
 	RELAY_UNLOCK_INIT(); RELAY_UNLOCK_START(); //Start LOW
-	INTERIOR_LIGHTS_INIT(); INTERIOR_LIGHTS_START(); //Start LOW
+	//INTERIOR_LIGHTS_INIT(); INTERIOR_LIGHTS_START(); //Start LOW
+	//AUX_RELAY_PIN_INIT(); AUX_RELAY_PIN_START(); //Start LOW
 	LID_SWITCH_INIT();
 	PANIC_PIR_SNSR_INIT();
 	KEYPAD_TRIGGER_INIT();
@@ -71,7 +72,7 @@ neo_mode = ANIMATION_MODE_NOTIFICATIONS_ID;  //FORGOT THIS
 notif.fForceStatusUpdate = true;
 	  Serial.println("Strip cleared in setup...");
 
-	Serial.println("Init show rainbow in Setup");  
+	//Serial.println("Init show rainbow in Setup");  
 	// ShowRainbow();
 
 }
@@ -99,15 +100,12 @@ void loop()
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
 	if(TimeReached(&tSavedFeedbackDisplay,10000)){
-		status = FEEDBACK_STATUS_UNLOCKING; // forcing mode
+		status = FEEDBACK_STATUS_BLINKING_PANIC; // forcing mode
 		NEO_Feedback_Display();		
 		Serial.println("NeoStatus_Tasker timer timed out and reset...");
 	}
 
 
-
-// Get leds to work with method above to trigger code directly before getting the seciotn below working. I will look at this another time
-/*
 	switch (box_state){
 		case STATE_UNLOCKING:
 		// Unlocked with package
@@ -134,8 +132,8 @@ void loop()
 		Serial.println("Now Unlocking");
 
 		// Set NEOPixel status light
-		status = FEEDBACK_STATUS_UNLOCKING; //Green blinking
-			break;
+		status = FEEDBACK_STATUS_UNLOCKING;
+		break;
 
 		case STATE_LOCKING:
 		// Completely locked
@@ -143,20 +141,17 @@ void loop()
 		{
 			// Stops actuator power
 			RELAY_LOCK_OFF();
-			// Turns off interior INTERIOR_LIGHTS
-			INTERIOR_LIGHTS_OFF();
 			changeState(STATE_LOCKED);
 		}
 
 		// Starts actuator power / keep locking
 		RELAY_LOCK_ON();
-		// Turns interior INTERIOR_LIGHTS on for camera, 10 seconds
-		INTERIOR_LIGHTS_ON();
+
 		Serial.println("Now Locking");
 
 		// Set NEOPixel status light
-		status = FEEDBACK_STATUS_LOCKING; // Purple and Red alternating
-			break;
+		status = FEEDBACK_STATUS_LOCKING;
+		break;
 
 		case STATE_CLOSED:
 		Serial.println("Entered STATE_CLOSED");
@@ -169,13 +164,12 @@ void loop()
 		// Package arrived and lockout timer expired
 		else if (package == true && GetTimer(timer, LOCKDOWN_INTERVAL))
 		{
-			INTERIOR_LIGHTS_ON();
 			changeState(STATE_LOCKING);
 		}
 
 		// Set NEOPixel status light
-		status = FEEDBACK_STATUS_CLOSED_COUNTING; // Purple blinking
-  			break;
+		status = FEEDBACK_STATUS_CLOSED_COUNTING;
+  		break;
 
 		case STATE_OPENED:
 		// Just closed and debounced
@@ -189,15 +183,15 @@ void loop()
 		{
 			Serial.println("I've been left AJAR");
 		// Set NEOPixel status light
-		status = FEEDBACK_STATUS_AJAR_ERROR; // Blue binking
+		status = FEEDBACK_STATUS_AJAR_ERROR;
 		}
 
 		// Set NEOPixel status light
-		status = FEEDBACK_STATUS_OPEN; // Red blinking
+		status = FEEDBACK_STATUS_OPEN;
 
 		// Assume package arrived
 		package = true;
-			break;
+		break;
 
 		case STATE_LOCKED:
 		// Unlock in case of PANIC_SENSOR tripped
@@ -206,7 +200,7 @@ void loop()
 			Serial.println("PANIC_SW!");
 			changeState(STATE_UNLOCKING, true);
 			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_BLINKING_PANIC; // Purple and Red alternating
+			status = FEEDBACK_STATUS_BLINKING_PANIC;
 		}
 
 		// Unlock when proper keypad code is given
@@ -251,11 +245,10 @@ void loop()
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_READY_RETRIEVE; // Yellow blinking
-			break;
+		break;
 
 	}
 
-	*/
 
 }
 
@@ -317,13 +310,13 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 
 void init_Colormap(){
 	Serial.println("VOID Colormap function message");
-	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(50));
-	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(280),Sat100toFloat(100),Brt100toFloat(50));
-	preset_color_map[COLOR_CYAN_INDEX]    	= HsbColor(Hue360toFloat(180),Sat100toFloat(100),Brt100toFloat(50));
-	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(50));
-	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(50));
-	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(30),Sat100toFloat(100),Brt100toFloat(50));
-//	preset_color_map[COLOR_MAP_NONE_ID]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(25)); // NONE does not exist, since none is 1 longer than the array since the array index starts at 0
+	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(280),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_CYAN_INDEX]    	= HsbColor(Hue360toFloat(180),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_GREEN_INDEX]    	= HsbColor(Hue360toFloat(120),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_BLUE_INDEX]     	= HsbColor(Hue360toFloat(240),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_YELLOW_INDEX]   	= HsbColor(Hue360toFloat(30),Sat100toFloat(100),Brt100toFloat(100));
+	preset_color_map[COLOR_WHITE_INDEX]     = HsbColor(Hue360toFloat(0),Sat100toFloat(0),Brt100toFloat(100));
 
 }
 
@@ -460,81 +453,92 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
-			// notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
-			// notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
+
+			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
-		Serial.println("In feedback status unlocking");
+		//Serial.println("In feedback status unlocking");
+			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_PULSING_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
+			//notif.pixel[0].auto_time_off_secs = 8;
 
-			notif.pixel[0].period_ms = 2000; // 1 second between "on"s, so half second toggling
-			notif.pixel[0].mode = NOTIF_MODE_ALTERNATE_COLOR_1;
-			notif.pixel[0].alternate_colors[0] = preset_color_map[COLOR_YELLOW_INDEX];
-			notif.pixel[0].alternate_colors[1] = preset_color_map[COLOR_PURPLE_INDEX];
-			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
-			notif.pixel[0].auto_time_off_secs = 8;
-			Serial.println("Blinking pixel 0 green");
-			
-			notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
-			notif.pixel[1].color = preset_color_map[COLOR_CYAN_INDEX];
-			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
-			notif.pixel[1].auto_time_off_secs = 8;
-			Serial.println("blinking pixel 1 red");
-			
-
-
-			// notif.pixel[i].color = preset_color_map[COLOR_GREEN_INDEX];
-			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
+			//notif.pixel[1].auto_time_off_secs = 8;
 		break;
    		case FEEDBACK_STATUS_OPEN:
-			// notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
-			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			//notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+			//notif.pixel[0].auto_time_off_secs = 8;
+
+		   	//notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			//notif.pixel[1].auto_time_off_secs = 8;
 		break;
 		case FEEDBACK_STATUS_AJAR_ERROR:
-			// notif.pixel[i].color = preset_color_map[COLOR_BLUE_INDEX];
-			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[0].period_ms = 500; // 0.25 second between "on"s, so quarter second toggling
+			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+			//notif.pixel[0].auto_time_off_secs = 8;
+
+			notif.pixel[1].period_ms = 750; 
+			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_CYAN_INDEX];
+			//notif.pixel[1].auto_time_off_secs = 8;
 		break;
 		case FEEDBACK_STATUS_CLOSED_COUNTING:
-			// if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
-			// 	notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-			// 	notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
-			// 	stripbus->Show();
-			// }else{
-			// 	notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
-			// 	notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
-			// 	stripbus->Show();
-			// }
-			
+			//notif.pixel[0].period_ms = 750; // three quarter second between "on"s, so three quarter second toggling
+			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
+			//notif.pixel[0].auto_time_off_secs = 8;
+
+			notif.pixel[1].period_ms = 750; // three quarter second between "on"s, so three quarter second toggling
+			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_YELLOW_INDEX];
+			//notif.pixel[1].auto_time_off_secs = 8;
 		break;
 		case FEEDBACK_STATUS_LOCKING:
-			// if (GetTimer(fast_blink_timer, FAST_BLINK_INTERVAL)){
-			// 	notif.pixel[0].color = preset_color_map[COLOR_PURPLE_INDEX];
-			// 	notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
-			// 	stripbus->Show();
-			// }else{
-			// 	notif.pixel[1].color = preset_color_map[COLOR_PURPLE_INDEX];
-			// 	notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-			// 	stripbus->Show();
-			// }
+			//notif.pixel[0].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
+			//notif.pixel[0].auto_time_off_secs = 8;
+
+			notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_PURPLE_INDEX];
+			//notif.pixel[1].auto_time_off_secs = 8;
 		break;
 		case FEEDBACK_STATUS_LOCKED:
-			// notif.pixel[i].color = preset_color_map[COLOR_RED_INDEX];
-			// notif.pixel[i].mode = NOTIF_MODE_STATIC_ON_ID;
+			//notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
+			//notif.pixel[1].auto_time_off_secs = 8;
 		break;
 		case FEEDBACK_STATUS_READY_RETRIEVE:
-			// notif.pixel[i].color = preset_color_map[COLOR_YELLOW_INDEX];
-			// notif.pixel[i].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
+
+			notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
-			// if (GetTimer(panic_blink_timer, PANIC_BLINK_INTERVAL)){
-			// 	notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-			// 	notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
-			// 	stripbus->Show();
-			// }else{
-			// 	notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
-			// 	notif.pixel[0].color = preset_color_map[COLOR_BLUE_INDEX];
-			// 	stripbus->Show();
-			// }
+			notif.pixel[0].period_ms = 150; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
+			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
+			//notif.pixel[0].auto_time_off_secs = 2;
+
+			notif.pixel[1].period_ms = 150; // 0.5 second between "on"s, so half second toggling
+			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
+			notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
 		break;
 		Serial.println("End of status case");
 	}
@@ -566,3 +570,12 @@ uint8_t BrtFloatto100(float brt){
 *********************************************************************END NEOPIXEL SECTION***************************************
 *****************************************************************************************************************************/
 
+//TESTING PLACEHOLDER
+
+/*notif.pixel[0].period_ms = 4000; // 1 second between "on"s, so half second toggling
+			notif.pixel[0].mode = NOTIF_MODE_ALTERNATE_COLOR_1;
+			notif.pixel[0].alternate_colors[0] = preset_color_map[COLOR_YELLOW_INDEX];
+			notif.pixel[0].alternate_colors[1] = preset_color_map[COLOR_PURPLE_INDEX];
+			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
+			notif.pixel[0].auto_time_off_secs = 10;
+			Serial.println("Blinking pixel 0 green");*/

@@ -35,7 +35,7 @@ License along with VaultController.  If not, see
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
-#define BUILD_NUMBER_CTR "v0_4"
+#define BUILD_NUMBER_CTR "v0_5"
 
 // Levels of stability (from testing to functional)
 #define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
@@ -48,7 +48,7 @@ unsigned long debounce_timer = 0;
 unsigned long total_reset_timer = 0;
 bool reset = false;
 bool package = false;
-int blinkFlag = 0;
+//int blinkFlag = 0;
 
 
 //Switch-case for vault states
@@ -67,7 +67,7 @@ NOTIF_MODE_ALTERNATE_COLOR_1,NOTIF_MODE_ALTERNATE_COLOR_2,
 NOTIF_MODE_PULSING_ON_ID,NOTIF_MODE_PULSING_OFF_ID,MODE_NONE_ID}; 
 
 //Defines for Mapping colors by name
-enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_CYAN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_MAP_NONE_ID};
+enum COLOR_MAP_INDEXES{COLOR_RED_INDEX=0,COLOR_PURPLE_INDEX,COLOR_GREEN_INDEX,COLOR_CYAN_INDEX,COLOR_BLUE_INDEX,COLOR_YELLOW_INDEX,COLOR_WHITE_INDEX,COLOR_MAP_NONE_ID};
 #define PRESET_COLOR_MAP_INDEXES_MAX COLOR_MAP_NONE_ID   
 HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
 
@@ -90,27 +90,31 @@ void init_Colormap(void);
 void NEO_Feedback_Display();
 void ShowRainbow(void);
 
+// *************SUPER IMPORTANT NOTE!!! THERE WERE A COUPLE ITEMS ON THE V.1 BOARD THAT HAD TO BE CHANGED IN THE CODE TO 
+//  MAKE THE BOARD WORK AS DESIGNED. THE SCHEMATIC HAS BEEN CHANGED FOR FUTURE GENERATIONS BUT THE V.1 BOARD WILL BE USED
+//   UP FIRST... CONFIRM PINOUT BEFORE EACH BOARD IS FLASHED UNTIL V.1 BOARDS HAVE BEEN USED. ONLY APPLIES TO V.1 BOARDS
+// ******************************************************************************************************************************************
 
 // Timer Intervals - ALL non-blocking timers
-#define BLINK_INTERVAL		500			// Fast blink interval, half second
-#define SLOW_BLINK_INTERVAL	1800		// Slow blink interval, 1.8 seconds
+//#define BLINK_INTERVAL		500			// Fast blink interval, half second
+//#define SLOW_BLINK_INTERVAL	1800		// Slow blink interval, 1.8 seconds
 #define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
-#define LOCKDOWN_INTERVAL	15000		// Period of time before lockdown of vault after lid close, 15 seconds
+#define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
 #define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
-#define DEBOUNCE_INTERVAL	400			// Button Debounce
-#define TOTAL_RESET_INTERVAL 86400000	// Full board reset timer, fired evey 24 hours - debug only
+#define DEBOUNCE_INTERVAL	200			// Button Debounce
+//#define TOTAL_RESET_INTERVAL 86400000	// Full board reset timer, fired evey 24 hours - debug only, NOT USED FOR V.1 DESIGN
 
 // I/O
-#define RELAY_LOCK_PIN		16	// Unlock Relay
-#define RELAY_UNLOCK_PIN	17	// Lock Relay
-#define INTERIOR_LIGHTS_PIN	4	// Interior lighting ring for camera and panic functions
-#define LID_SWITCH			18	// Mag switch on lid
-#define PANIC_PIR_SNSR		32	// Passive Infrared sensor for panic release **************************change this pin, is not on this pin***************************
+#define RELAY_LOCK_PIN		27	// Unlock Relay
+#define RELAY_UNLOCK_PIN	12	// Lock Relay
+//#define INTERIOR_LIGHTS_PIN	26	// Interior lighting ring for camera and panic functions USING NEOPIXEL LIGHT ON CONTROLLER LID FOR INTERIOR LIGHTING FOR NOW
+//#define AUX_RELAY_PIN		25  // Aux relay - spare, for future development?
+#define LID_SWITCH			4	// Mag switch on lid
+#define PANIC_PIR_SNSR		22	// Passive Infrared sensor for panic release **************************change this pin, is not on this pin***************************
 #define KEYPAD_TRIGGER		14	// Latching pushbutton for  panic release, backlit
-//#define LED_PIN        		3	// Control pin for the neopixel status indicators
 
 // NeoPixel Info
-#define PIXEL_PIN     19  // Digital IO pin 
+#define PIXEL_PIN     23  // Digital IO pin 
 #define PIXEL_COUNT    2   // Number of NeoPixels
 
 // Declare our NeoPixel strip object
@@ -153,16 +157,25 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 #define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,ON_LOGIC_LEVEL) //opened when LOW
 #define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
 
-#define INTERIOR_LIGHTS_INIT()    pinMode(INTERIOR_LIGHTS_PIN,OUTPUT)
+/*#define INTERIOR_LIGHTS_INIT()    pinMode(INTERIOR_LIGHTS_PIN,OUTPUT)
 #define INTERIOR_LIGHTS_START()	  digitalWrite(RELAY_LOCK_PIN,LOW)
-//#define INTERIOR_LIGHTS_ONOFF() !digitalRead(INTERIOR_LIGHTS_PIN) //opened when LOW
+#define INTERIOR_LIGHTS_ONOFF() !digitalRead(INTERIOR_LIGHTS_PIN) //opened when LOW
 #define INTERIOR_LIGHTS_ON()      digitalWrite(INTERIOR_LIGHTS_PIN,ON_LOGIC_LEVEL) //opened when LOW
 #define INTERIOR_LIGHTS_OFF()     digitalWrite(INTERIOR_LIGHTS_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+*/
+
+/*#define AUX_RELAY_PIN_INIT()    pinMode(AUX_RELAY_PIN,OUTPUT)
+#define AUX_RELAY_PIN_START()	  digitalWrite(RELAY_LOCK_PIN,LOW)
+#define AUX_RELAY_PIN_ONOFF() !digitalRead(AUX_RELAY_PIN_PIN) //opened when LOW
+#define AUX_RELAY_PIN_ON()      digitalWrite(AUX_RELAY_PIN_PIN,ON_LOGIC_LEVEL) //opened when LOW
+#define AUX_RELAY_PIN_OFF()     digitalWrite(AUX_RELAY_PIN_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+*/
+
       
 // /*****************************************************************************************************************************
-// * FSM Change State Function
+// *																 FSM Change State Function
 // *****************************************************************************************************************************/
-// void changeState(int new_state, bool reset);
+ void changeState(int new_state, bool reset);
 
 // /*****************************************************************************************************************************
 // *																										  					 *
@@ -170,13 +183,8 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 // *																															 *
 // *****************************************************************************************************************************/
 
-// bool GetTimer(unsigned long &timer, int interval);
-// bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
-
-// /*****************************************************************************************************************************
-// *********************************************************************END TIMERS SECTION***************************************
-// *****************************************************************************************************************************/
-
+ bool GetTimer(unsigned long &timer, int interval);
+ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 
 
 // /*****************************************************************************************************************************
@@ -184,13 +192,13 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 // *                                                                   NeoPixel Status LED's									 *
 // *																															 *
 // *****************************************************************************************************************************/
-
+		//May be used at a later time, so left in for brevity
 	//unsigned long slow_blink_timer = 0;
-	unsigned long fast_blink_timer = 0;
-	unsigned long panic_blink_timer = 0;
+	//unsigned long fast_blink_timer = 0;
+	//unsigned long panic_blink_timer = 0;
 	//#define SLOW_BLINK_INTERVAL		1000	// Slow blink interval, ONE second
-	#define FAST_BLINK_INTERVAL		500		// Fast blink interval, HALF second
-	#define PANIC_BLINK_INTERVAL	250		// Fast blink interval, QUARTER second
+	//#define FAST_BLINK_INTERVAL		500		// Fast blink interval, HALF second
+	//#define PANIC_BLINK_INTERVAL	250		// Fast blink interval, QUARTER second
 
 
 	uint32_t tSavedFeedbackDisplay = millis();
@@ -222,30 +230,16 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 
 
     enum ANIMATION_MODE{
-      ANIMATION_MODE_PRESETS_ID,
-      ANIMATION_MODE_AMBILIGHT_ID,
-      ANIMATION_MODE_SCENE_ID,
-        ANIMATION_MODE_NOTIFICATIONS_ID,
-      ANIMATION_MODE_FLASHER_ID,
-      ANIMATION_MODE_NONE
+      	ANIMATION_MODE_PRESETS_ID,
+     	ANIMATION_MODE_AMBILIGHT_ID,
+      	ANIMATION_MODE_SCENE_ID,
+    	ANIMATION_MODE_NOTIFICATIONS_ID,
+      	ANIMATION_MODE_FLASHER_ID,
+      	ANIMATION_MODE_NONE
     }; 
 
 	uint8_t neo_mode = ANIMATION_MODE_NONE;
 
-
-
-// void NeoStatus_Tasker();
-
-
-// void NEO_Feedback_Display();
-
-
-// float Hue360toFloat(uint16_t hue);
-// float Sat100toFloat(uint8_t sat);
-// float Brt100toFloat(uint8_t brt);
-// uint16_t HueFloatto360(float hue);
-// uint8_t SatFloatto100(float sat);
-// uint8_t BrtFloatto100(float brt);
 
 // /*****************************************************************************************************************************
 // *********************************************************************END NEOPIXEL SECTION***************************************
