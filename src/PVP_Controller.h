@@ -52,6 +52,11 @@ bool package = false;
 bool pir_triggered = false;
 //int blinkFlag = 0;
 
+uint8_t pirState = 0;         // current state of the button
+uint8_t lastPIRState = 0;     // previous state of the button
+uint8_t keypadState = 0;         // current state of the button
+uint8_t lastKEYPADState = 0;     // previous state of the button
+
 
 //Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
@@ -90,7 +95,7 @@ void changeState(int new_state, bool reset = false);
 bool GetTimer(unsigned long &timer, int interval);
 bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 void PanicSensorCheck();
-//void Status_Update(void);
+void KeypadCheck();
 void NeoStatus_Tasker(void);
 void init_Colormap(void);
 void NEO_Feedback_Display(void);

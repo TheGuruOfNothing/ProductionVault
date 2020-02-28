@@ -81,16 +81,20 @@ notif.fForceStatusUpdate = true;
  ******************************************************************************************************************************
  */
 
-void loop()
-{
+void loop(){
 
-	NeoStatus_Tasker(); // called always without delay
+	//NeoStatus_Tasker(); // called always without delay
 	Actuator_Tasker();
-	PanicSensorCheck();
-	NEO_Feedback_Display();
+	//PanicSensorCheck();
+	//KeypadCheck();
+	//NEO_Feedback_Display();
 
+	//if (GetTimer(response_timer, RESPONSE_INTERVAL)){
+	//		Serial.println(keypadState);
+	//	}
+	
 
-	/* Lets use this to trigger every 10 seconds. 
+/* Lets use this to trigger every 10 seconds. 
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
 	if(TimeReached(&tSavedFeedbackDisplay,10000)){
@@ -148,7 +152,39 @@ bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
 /*****************************************************************************************************************************
 *********************************************************************END TIMERS SECTION***************************************
 *****************************************************************************************************************************/
+void PanicSensorCheck(){
+	// read the pushbutton input pin:
+  	pirState = digitalRead(PANIC_PIR_SNSR);
+  	// compare the buttonState to its previous state
+  	if (pirState != lastPIRState) {
+    // if the state has changed, increment the counter
+    if (pirState == 1 && GetTimer(debounce_timer, DEBOUNCE_INTERVAL)) {
+		changeState(STATE_UNLOCKING, true);
+		Serial.println("PIR was triggered");
+		}
+    } 
+  
+  // save the current state as the last state, for next time through the loop
+  lastPIRState = pirState;
 
+}
+
+void KeypadCheck(){
+	// read the pushbutton input pin:
+  	keypadState = digitalRead(KEYPAD_TRIGGER);
+  	// compare the buttonState to its previous state
+  	if (keypadState != lastKEYPADState) {
+    // if the state has changed, increment the counter
+    if (keypadState == 1 && GetTimer(debounce_timer, DEBOUNCE_INTERVAL)) {
+		changeState(STATE_UNLOCKING, true);
+		Serial.println("KEYPAD was triggered");
+		}
+    } 
+
+  // save the current state as the last state, for next time through the loop
+  lastKEYPADState = keypadState;
+
+}
 
 
 /*****************************************************************************************************************************
@@ -407,38 +443,7 @@ uint8_t BrtFloatto100(float brt){
 *********************************************************************END NEOPIXEL SECTION***************************************
 *****************************************************************************************************************************/
 
-void PanicSensorCheck(){
-	//Serial.println("Checking");
 
-	int pirState = 0;         // current state of the button
-	int lastPIRState = 0;     // previous state of the button
-	// read the pushbutton input pin:
-  pirState = digitalRead(PANIC_PIR_SNSR);
-
-  // compare the buttonState to its previous state
-  if (pirState != lastPIRState) {
-    // if the state has changed, increment the counter
-    if (pirState == HIGH) {
-		pir_triggered = true;
-		if (GetTimer(response_timer, RESPONSE_INTERVAL)){
-			Serial.println("PIR is on");
-		}
-		
-      // if the current state is HIGH then the button went from off to on:
-    } else {
-      // if the current state is LOW then the button went from on to off:
-	  pir_triggered = false;
-	  if (GetTimer(response_timer, RESPONSE_INTERVAL)){
-			Serial.println("PIR is off");
-		}
-    }
-    // Delay a little bit to avoid bouncing
-    delay(50);
-  }
-  // save the current state as the last state, for next time through the loop
-  lastPIRState = pirState;
-
-}
 
 void Actuator_Tasker(){
     switch (box_state){
@@ -543,24 +548,10 @@ void Actuator_Tasker(){
 		break;
 
 		case STATE_LOCKED:
-		// Unlock in case of PANIC_SENSOR tripped
-		if (pir_triggered == true);
-		{
-			Serial.println("PANIC_SW!");
-			Serial.println("Now Unlocking");
-			pir_triggered = false;
-			changeState(STATE_UNLOCKING, true);
-			// Set NEOPixel status light
-			status = FEEDBACK_STATUS_BLINKING_PANIC;
-		} 
-
-		// Unlock when proper keypad code is given
-		//if (KEYPAD_TRIGGER_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL));
-		//{
-			//Serial.println("Keyad received correct code, unlocking now...");
-			//changeState(STATE_UNLOCKING, true);
-			//break;
-		//}
+		// Unlock in case of PANIC tripped
+		PanicSensorCheck();
+		// Unlock in case of KEYPAD input tripped
+		KeypadCheck();
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_LOCKED; // Red solid
