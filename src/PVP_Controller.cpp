@@ -89,7 +89,7 @@ void loop(){
 	//KeypadCheck();
 	//NEO_Feedback_Display();
 
-	//if (GetTimer(response_timer, RESPONSE_INTERVAL)){
+	//if (TimeReached(&response_timer, RESPONSE_INTERVAL)){
 	//		Serial.println(keypadState);
 	//	}
 	
@@ -98,7 +98,7 @@ void loop(){
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
 		if(TimeReached(&tSavedFeedbackDisplay,10000)){
-		status = FEEDBACK_STATUS_READY; // forcing mode
+		status = FEEDBACK_STATUS_CLOSED_COUNTING; // forcing mode
 		NEO_Feedback_Display();		
 		Serial.println("NeoStatus_Tasker timer timed out and reset...");
 	}
@@ -124,23 +124,9 @@ void changeState(int new_state, bool reset){
 
 /*****************************************************************************************************************************
 *																										  					 *
-*                                                                   TIMERS USED IN CODE										 *
+*                                                                   TIMER USED IN CODE										 *
 *																															 *
 *****************************************************************************************************************************/
-
-bool GetTimer(unsigned long &timer, int interval){
-	
-	if (timer < 1){
-		timer = millis();
-	}
-
-	if (millis() - timer >= interval){
-		timer = 0;
-		return true;
-	}
-
-	return false;
-}
 
 
 bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
@@ -159,7 +145,7 @@ void PanicSensorCheck(){
   	// compare the buttonState to its previous state
   	if (pirState != lastPIRState) {
     // if the state has changed, increment the counter
-    if (pirState == 1 && GetTimer(debounce_timer, DEBOUNCE_INTERVAL)) {
+    if (pirState == 1 && TimeReached(&debounce_timer, DEBOUNCE_INTERVAL)) {
 		changeState(STATE_UNLOCKING, true);
 		Serial.println("PIR was triggered");
 		}
@@ -176,7 +162,7 @@ void KeypadCheck(){
   	// compare the buttonState to its previous state
   	if (keypadState != lastKEYPADState) {
     // if the state has changed, increment the counter
-    if (keypadState == 1 && GetTimer(debounce_timer, DEBOUNCE_INTERVAL)) {
+    if (keypadState == 1 && TimeReached(&debounce_timer, DEBOUNCE_INTERVAL)) {
 		changeState(STATE_UNLOCKING, true);
 		Serial.println("KEYPAD was triggered");
 		}
@@ -366,7 +352,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 			notif.pixel[1].period_ms = 750; 
 			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
-			notif.pixel[1].color = preset_color_map[COLOR_CYAN_INDEX];
+			notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
 	
 		break;
@@ -466,7 +452,7 @@ void Actuator_Tasker(){
     switch (box_state){
 		case STATE_UNLOCKING:
 		// Unlocked with package
-		if (package == true && GetTimer(timer, RELAY_INTERVAL))
+		if (package == true && TimeReached(&timer, RELAY_INTERVAL))
 		{
 			Serial.println("Ready for retrieval");
 		// Stops actuator power
@@ -477,7 +463,7 @@ void Actuator_Tasker(){
 		// Unlocked and no package
 		else 
 		{
-			if (package == false && GetTimer(timer, RELAY_INTERVAL)) 
+			if (package == false && TimeReached(&timer, RELAY_INTERVAL)) 
 			{
 				Serial.println("Ready for delivery");
 		// Stops actuator power
@@ -488,7 +474,7 @@ void Actuator_Tasker(){
 			}
 		}
 
-		if (GetTimer(response_timer, RESPONSE_INTERVAL)){
+		if (TimeReached(&response_timer, RESPONSE_INTERVAL)){
 			Serial.println("Now Unlocking");
 		}
 		// Starts actuator power for unlock
@@ -502,7 +488,7 @@ void Actuator_Tasker(){
 
 		case STATE_LOCKING:
 		// Completely locked
-		if (GetTimer(timer, RELAY_INTERVAL))
+		if (TimeReached(&timer, RELAY_INTERVAL))
 		{
 			// Stops actuator power
 			RELAY_LOCK_OFF();
@@ -524,14 +510,14 @@ void Actuator_Tasker(){
 		case STATE_CLOSED:
 		//Serial.println("Entered STATE_CLOSED");
 		// Just opened and debounced
-		if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
+		if (LID_SWITCH_ACTIVE() && TimeReached(&debounce_timer, DEBOUNCE_INTERVAL))
 		{
 			Serial.println("Lid Was Opened!");
 			changeState(STATE_OPENED);
 			break;
 		}
 		// Package arrived and lockout timer expired
-		else if (package == true && GetTimer(timer, LOCKDOWN_INTERVAL))
+		else if (package == true && TimeReached(&timer, LOCKDOWN_INTERVAL))
 		{
 			Serial.println("Lid closed and timed out with package");
 			changeState(STATE_LOCKING);
@@ -545,14 +531,14 @@ void Actuator_Tasker(){
 
 		case STATE_OPENED:
 		// Just closed and debounced
-		if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL))
+		if (!LID_SWITCH_ACTIVE() && TimeReached(&debounce_timer, DEBOUNCE_INTERVAL))
 		{
 			Serial.println("Lid Was Closed!");
 			changeState(STATE_CLOSED);
 			break;
 		}
 		// Lid open for too long
-		else if (GetTimer(timer, LID_OPEN_INTERVAL))
+		else if (TimeReached(&timer, LID_OPEN_INTERVAL))
 		{
 			Serial.println("I've been left AJAR");
 		// Set NEOPixel status light
@@ -583,7 +569,7 @@ void Actuator_Tasker(){
 		case STATE_QUALIFIER:
 		Serial.println("Qualifier!");
 		// Just opened and debounced with package
-		if (LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == true)
+		if (LID_SWITCH_ACTIVE() && TimeReached(&debounce_timer, DEBOUNCE_INTERVAL) && package == true)
 		{
 			Serial.println("_____________________________________________________________");
 			Serial.println("Package Retrieved");
@@ -593,13 +579,13 @@ void Actuator_Tasker(){
 			package = false;
 		}
 		// Closed and debounced with no package
-		else if (!LID_SWITCH_ACTIVE() && GetTimer(debounce_timer, DEBOUNCE_INTERVAL) && package == false)
+		else if (!LID_SWITCH_ACTIVE() && TimeReached(&debounce_timer, DEBOUNCE_INTERVAL) && package == false)
 		{
 			changeState(STATE_CLOSED);
 		}
 
 		// Lid open for too long
-		if (GetTimer(timer, LID_OPEN_INTERVAL))
+		if (TimeReached(&timer, LID_OPEN_INTERVAL))
 		{
 			Serial.println("Lid was left AJAR");
 			// Set NEOPixel status light

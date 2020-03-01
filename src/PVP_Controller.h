@@ -43,10 +43,10 @@ License along with VaultController.  If not, see
 //#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
 
 
-unsigned long timer = 0;
-unsigned long debounce_timer = 0;
-unsigned long total_reset_timer = 0;
-unsigned long response_timer = 0;
+uint32_t timer = 0;
+uint32_t debounce_timer = 0;
+uint32_t total_reset_timer = 0;
+uint32_t response_timer = 0;
 bool reset = false;
 bool package = false;
 bool pir_triggered = false;
@@ -84,7 +84,7 @@ HsbColor preset_color_map[PRESET_COLOR_MAP_INDEXES_MAX];
 
 
 //Function Prototypes
-void SetFeedbackStatus(uint8_t new_status );
+//void SetFeedbackStatus(uint8_t new_status );
 float    Hue360toFloat(uint16_t hue);
 float    Sat100toFloat(uint8_t sat);
 float    Brt100toFloat(uint8_t brt);
@@ -92,7 +92,6 @@ uint16_t HueFloatto360(float hue);
 uint8_t  SatFloatto100(float sat);
 uint8_t  BrtFloatto100(float brt);
 void changeState(int new_state, bool reset = false);
-bool GetTimer(unsigned long &timer, int interval);
 bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 void PanicSensorCheck();
 void KeypadCheck();
