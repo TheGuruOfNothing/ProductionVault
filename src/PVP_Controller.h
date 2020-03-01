@@ -43,10 +43,16 @@ License along with VaultController.  If not, see
 //#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
 
 
-uint32_t timer = 0;
+uint32_t box_timer = 0;
 uint32_t debounce_timer = 0;
 uint32_t total_reset_timer = 0;
 uint32_t response_timer = 0;
+uint32_t unlock_timer = 0;
+uint32_t lock_timer = 0;
+uint32_t lockdown_timer = 0;
+uint32_t ajar_timer = 0;
+
+
 bool reset = false;
 bool package = false;
 bool pir_triggered = false;
@@ -192,7 +198,6 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 // *																															 *
 // *****************************************************************************************************************************/
 
- bool GetTimer(unsigned long &timer, int interval);
  bool TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 
 

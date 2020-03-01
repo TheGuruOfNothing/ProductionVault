@@ -85,13 +85,7 @@ void loop(){
 
 	NeoStatus_Tasker(); // called always without delay
 	Actuator_Tasker();
-	//PanicSensorCheck();
-	//KeypadCheck();
 	//NEO_Feedback_Display();
-
-	//if (TimeReached(&response_timer, RESPONSE_INTERVAL)){
-	//		Serial.println(keypadState);
-	//	}
 	
 
     //Lets use this to trigger every 10 seconds. 
@@ -112,8 +106,8 @@ void loop(){
 void changeState(int new_state, bool reset){
 	
 	box_state = new_state;
-	timer = 0;
-	debounce_timer = 0;
+	//box_timer = 0;
+	//debounce_timer = 0;
 
 	if (reset)
 	{
@@ -452,7 +446,7 @@ void Actuator_Tasker(){
     switch (box_state){
 		case STATE_UNLOCKING:
 		// Unlocked with package
-		if (package == true && TimeReached(&timer, RELAY_INTERVAL))
+		if (package == true && TimeReached(&unlock_timer, RELAY_INTERVAL))
 		{
 			Serial.println("Ready for retrieval");
 		// Stops actuator power
@@ -463,7 +457,7 @@ void Actuator_Tasker(){
 		// Unlocked and no package
 		else 
 		{
-			if (package == false && TimeReached(&timer, RELAY_INTERVAL)) 
+			if (package == false && TimeReached(&unlock_timer, RELAY_INTERVAL)) 
 			{
 				Serial.println("Ready for delivery");
 		// Stops actuator power
@@ -488,7 +482,7 @@ void Actuator_Tasker(){
 
 		case STATE_LOCKING:
 		// Completely locked
-		if (TimeReached(&timer, RELAY_INTERVAL))
+		if (TimeReached(&lock_timer, RELAY_INTERVAL))
 		{
 			// Stops actuator power
 			RELAY_LOCK_OFF();
@@ -517,7 +511,7 @@ void Actuator_Tasker(){
 			break;
 		}
 		// Package arrived and lockout timer expired
-		else if (package == true && TimeReached(&timer, LOCKDOWN_INTERVAL))
+		else if (package == true && TimeReached(&lockdown_timer, LOCKDOWN_INTERVAL))
 		{
 			Serial.println("Lid closed and timed out with package");
 			changeState(STATE_LOCKING);
@@ -538,7 +532,7 @@ void Actuator_Tasker(){
 			break;
 		}
 		// Lid open for too long
-		else if (TimeReached(&timer, LID_OPEN_INTERVAL))
+		else if (TimeReached(&ajar_timer, LID_OPEN_INTERVAL))
 		{
 			Serial.println("I've been left AJAR");
 		// Set NEOPixel status light
@@ -585,7 +579,7 @@ void Actuator_Tasker(){
 		}
 
 		// Lid open for too long
-		if (TimeReached(&timer, LID_OPEN_INTERVAL))
+		if (TimeReached(&ajar_timer, LID_OPEN_INTERVAL))
 		{
 			Serial.println("Lid was left AJAR");
 			// Set NEOPixel status light
