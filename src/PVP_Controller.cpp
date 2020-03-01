@@ -97,11 +97,11 @@ void loop(){
     //Lets use this to trigger every 10 seconds. 
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
-		if(TimeReached(&tSavedFeedbackDisplay,10000)){
-		status = FEEDBACK_STATUS_CLOSED_COUNTING; // forcing mode
-		NEO_Feedback_Display();		
-		Serial.println("NeoStatus_Tasker timer timed out and reset...");
-	}
+	//	if(TimeReached(&tSavedFeedbackDisplay,10000)){
+	//	status = FEEDBACK_STATUS_CLOSED_COUNTING; // forcing mode
+	//	NEO_Feedback_Display();		
+	//	Serial.println("NeoStatus_Tasker timer timed out and reset...");
+	//}
 
 
 }
