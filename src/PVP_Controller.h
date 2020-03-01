@@ -214,8 +214,6 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 	uint32_t tSavedFeedbackDisplay = millis();
 
 	void NeoStatus_SubTask();
-	
-// void init_Colormap();
 
 	struct NOTIF{
     	uint8_t fForceStatusUpdate = false;

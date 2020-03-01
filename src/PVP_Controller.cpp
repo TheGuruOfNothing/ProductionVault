@@ -83,7 +83,7 @@ notif.fForceStatusUpdate = true;
 
 void loop(){
 
-	//NeoStatus_Tasker(); // called always without delay
+	NeoStatus_Tasker(); // called always without delay
 	Actuator_Tasker();
 	//PanicSensorCheck();
 	//KeypadCheck();
@@ -94,14 +94,14 @@ void loop(){
 	//	}
 	
 
-/* Lets use this to trigger every 10 seconds. 
+    /*//Lets use this to trigger every 10 seconds. 
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
-	if(TimeReached(&tSavedFeedbackDisplay,10000)){
-		status = FEEDBACK_STATUS_UNLOCKING; // forcing mode
-				
+		if(TimeReached(&tSavedFeedbackDisplay,10000)){
+		status = FEEDBACK_STATUS_READY; // forcing mode
+		NEO_Feedback_Display();		
 		Serial.println("NeoStatus_Tasker timer timed out and reset...");
-	} */
+	}*/
 
 
 }
@@ -120,6 +120,7 @@ void changeState(int new_state, bool reset){
 		package = false;
 	}
 }
+
 
 /*****************************************************************************************************************************
 *																										  					 *
@@ -289,6 +290,8 @@ void NeoStatus_SubTask(){
     } //end switch case
   } //end timer check
 
+	
+
   //Auto turn off
   if(TimeReached(&notif.tSaved.AutoOff,1000)){// if 1 second past
     for(int i=0;i<PIXEL_COUNT;i++){ //check all
@@ -316,8 +319,6 @@ void NeoStatus_SubTask(){
 	
 
 void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
-
-	
 	switch (status){
 		default:
 		case FEEDBACK_STATUS_OFF:
@@ -327,6 +328,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
+			
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
 		//Serial.println("In feedback status unlocking");
@@ -339,6 +341,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
+			
 		break;
    		case FEEDBACK_STATUS_OPEN:
 			//notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
@@ -350,6 +353,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
+		
 		break;
 		case FEEDBACK_STATUS_AJAR_ERROR:
 			notif.pixel[0].period_ms = 500; // 0.25 second between "on"s, so quarter second toggling
@@ -361,6 +365,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_CYAN_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
+	
 		break;
 		case FEEDBACK_STATUS_CLOSED_COUNTING:
 			//notif.pixel[0].period_ms = 750; // three quarter second between "on"s, so three quarter second toggling
@@ -372,6 +377,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_YELLOW_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
+		
 		break;
 		case FEEDBACK_STATUS_LOCKING:
 			//notif.pixel[0].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
@@ -383,16 +389,18 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].mode = NOTIF_MODE_PULSING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_PURPLE_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
+		
 		break;
 		case FEEDBACK_STATUS_LOCKED:
 			//notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
-			//notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
+			
 			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_RED_INDEX];
 			//notif.pixel[1].auto_time_off_secs = 8;
+
 		break;
 		case FEEDBACK_STATUS_READY_RETRIEVE:
 			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
@@ -402,6 +410,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
+
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
 			notif.pixel[0].period_ms = 150; // 0.5 second between "on"s, so half second toggling
@@ -412,8 +421,8 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			notif.pixel[1].period_ms = 150; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[1].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_BLUE_INDEX];
+	
 		break;
-		//Serial.println("End of status case");
 	}
 }
 
@@ -479,7 +488,8 @@ void Actuator_Tasker(){
 		
 
 		// Set NEOPixel status light
-		//status = FEEDBACK_STATUS_UNLOCKING;
+		status = FEEDBACK_STATUS_UNLOCKING;
+		
 		break;
 
 		case STATE_LOCKING:
@@ -500,6 +510,7 @@ void Actuator_Tasker(){
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_LOCKING;
+		
 		break;
 
 		case STATE_CLOSED:
@@ -521,6 +532,7 @@ void Actuator_Tasker(){
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_CLOSED_COUNTING;
+		
   		break;
 
 		case STATE_OPENED:
@@ -542,6 +554,7 @@ void Actuator_Tasker(){
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_OPEN;
+		
 
 		// Assume package arrived
 		package = true;
@@ -555,6 +568,7 @@ void Actuator_Tasker(){
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_LOCKED; // Red solid
+		
 
 		break;
 
@@ -587,6 +601,7 @@ void Actuator_Tasker(){
 
 		// Set NEOPixel status light
 		status = FEEDBACK_STATUS_READY_RETRIEVE; // Yellow blinking
+		
 		break;
 
 	}
