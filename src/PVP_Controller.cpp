@@ -94,14 +94,14 @@ void loop(){
 	//	}
 	
 
-    /*//Lets use this to trigger every 10 seconds. 
+    //Lets use this to trigger every 10 seconds. 
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
 		if(TimeReached(&tSavedFeedbackDisplay,10000)){
 		status = FEEDBACK_STATUS_READY; // forcing mode
 		NEO_Feedback_Display();		
 		Serial.println("NeoStatus_Tasker timer timed out and reset...");
-	}*/
+	}
 
 
 }
@@ -323,6 +323,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
+		Serial.println("FS Ready");
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
 
@@ -331,7 +332,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
-		//Serial.println("In feedback status unlocking");
+			Serial.println("FS Unlocking");
 			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_PULSING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
@@ -344,6 +345,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			
 		break;
    		case FEEDBACK_STATUS_OPEN:
+		   Serial.println("FS Open");
 			//notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
@@ -356,6 +358,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		
 		break;
 		case FEEDBACK_STATUS_AJAR_ERROR:
+			Serial.println("FS AJAR");
 			notif.pixel[0].period_ms = 500; // 0.25 second between "on"s, so quarter second toggling
 			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
@@ -368,6 +371,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 	
 		break;
 		case FEEDBACK_STATUS_CLOSED_COUNTING:
+			Serial.println("FS Counting");
 			//notif.pixel[0].period_ms = 750; // three quarter second between "on"s, so three quarter second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
@@ -380,6 +384,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		
 		break;
 		case FEEDBACK_STATUS_LOCKING:
+		Serial.println("FS Locking");
 			//notif.pixel[0].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
@@ -392,6 +397,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		
 		break;
 		case FEEDBACK_STATUS_LOCKED:
+			Serial.println("FS Locked");
 			//notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
@@ -403,6 +409,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 		break;
 		case FEEDBACK_STATUS_READY_RETRIEVE:
+			Serial.println("FS Ready Retrieve");
 			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
@@ -413,6 +420,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
+			Serial.println("FS Panic");
 			notif.pixel[0].period_ms = 150; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
