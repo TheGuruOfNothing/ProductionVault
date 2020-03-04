@@ -1,6 +1,319 @@
+/* *******The Package Vault Project***********
+ I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
+ and collaboration in this project. The majority of the code is his and he deserves the credit 
+ for all his patience invested as well, as I am not the easiest dog to teach new tricks to. 
+
+ Additional credit is owed to @Chris Aitken for his efforts also. The original core code was 
+ his. I have used that as the foundation to the project and though it is now only a small piece
+ of the large puzzle, it is what took the vault from a passing whimsy to a functional device. LOTS of
+ upgrades have been built onto that code.
+
+ The Package Vault Project was started as a personal project to try and stop package thieves
+ from taking my packages. After falling victim, I decided enough was enough. This device
+ was born. It's popularity amongst the neighbors and local community has made it take on a life of it's own.
+ It is my hope that you will take the code that has been created and figure out how to integrate it
+ into something new and cool that has the same goal - to thwart package thieves. 
+
+You can get more information on this project or on this code at www.packagevaultproject.org
+-------------------------------------------------------------------------------------------------------------
+VaultController is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+VaultController is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with VaultController.  If not, see
+<http://www.gnu.org/licenses/>.
+------------------------------------------------------------------------------------------------------------ 
+*/
+
 #include <Arduino.h>
 #include <NeoPixelBus.h>
-#include "PVP_Status.h"
+#include "PVP_Controller.h"
+
+#define BUILD_NUMBER_CTR "v0_52"
+
+// Levels of stability (from testing to functional)
+#define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
+//#define STABILITY_LEVEL_PRE_RELEASE "pre_release" // under consideration for release (bug checking) >24 stability
+//#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
+
+
+
+/*****************************************************************************************************************************
+ * SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        
+ *****************************************************************************************************************************
+ */
+
+void setup()
+{	
+	Serial.begin(115200);
+
+	RELAY_LOCK_INIT(); RELAY_LOCK_START(); //Start LOW
+	RELAY_UNLOCK_INIT(); RELAY_UNLOCK_START(); //Start LOW
+	INTERIOR_LIGHTS_INIT(); INTERIOR_LIGHTS_START(); //Start LOW
+	AUX_RELAY_PIN_INIT(); AUX_RELAY_PIN_START(); //Start LOW
+	LID_SWITCH_INIT();
+	PANIC_PIR_SNSR_INIT();
+	KEYPAD_TRIGGER_INIT();
+	NEO_PIN_INIT();
+
+	Serial.println("Init colormap in Setup");
+	init_Colormap();
+	
+
+    stripbus = new NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod>(PIXEL_COUNT,PIXEL_PIN);
+	stripbus->Begin();
+	stripbus->ClearTo(0);
+  	stripbus->Show();  // Initialize all pixels to 'off'
+
+
+	notif.fForceStatusUpdate = true;
+	  Serial.println("Strip cleared in setup...");
+
+
+}
+
+/******************************************************************************************************************************
+ * LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      
+ ******************************************************************************************************************************
+ ******************************************************************************************************************************
+ */
+
+void loop(){
+
+	NeoStatus_Tasker(); // called always without delay
+	Actuator_Tasker();
+	
+	
+
+    //Lets use this to trigger every 10 seconds. 
+	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
+	// repeating 4 seconds later when this fires again.
+	//	if(TimeReached(&tSavedFeedbackDisplay,10000)){
+	//	status = FEEDBACK_STATUS_CLOSED_COUNTING; // forcing mode
+	//	NEO_Feedback_Display();		
+	//	Serial.println("NeoStatus_Tasker timer timed out and reset...");
+	//}
+
+
+}
+
+
+
+int package = false;
+
+
+void Actuator_Tasker(){
+    switch (box_state){
+		case STATE_UNLOCKING:
+		// Unlocked with package
+		if (package = true && TimeReached(tUnlock, RELAY_INTERVAL))
+		{
+			Serial.println("Ready for retrieval");
+		// Stops actuator power
+			RELAY_UNLOCK_OFF();
+			changeState(STATE_QUALIFIER);
+		break;
+		}
+		// Unlocked and no package
+		else 
+		{
+			if (package == false && TimeReached(tUnlock, RELAY_INTERVAL)) 
+			{
+				Serial.println("Ready for delivery");
+		// Stops actuator power
+				RELAY_UNLOCK_OFF();
+				Serial.println("Unlock relay turned off");
+				changeState(STATE_CLOSED);
+		break;
+			}
+		}
+
+		if (TimeReached(tResponse, RESPONSE_INTERVAL)){
+			Serial.println("Now Unlocking");
+		}
+		// Starts actuator power for unlock
+		//Serial.println("Relay activated");
+		RELAY_UNLOCK_ON();
+		
+
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_UNLOCKING);
+		
+		break;
+
+		case STATE_LOCKING:
+		// Completely locked
+		if (TimeReached(tLock, RELAY_INTERVAL))
+		{
+			// Stops actuator power
+			RELAY_LOCK_OFF();
+			Serial.println("Vault is locked!");
+			changeState(STATE_LOCKED);
+			break;
+		}
+
+		// Starts actuator power / keep locking
+		RELAY_LOCK_ON();
+
+		//Serial.println("Now Locking");
+
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_LOCKING);
+		
+		break;
+
+		case STATE_CLOSED:
+		//Serial.println("Entered STATE_CLOSED");
+		// Just opened and debounced
+		if (LID_SWITCH_ACTIVE() && TimeReached(tDebounce, DEBOUNCE_INTERVAL))
+		{
+			Serial.println("Lid Was Opened!");
+			changeState(STATE_OPENED);
+			break;
+		}
+		// Package arrived and lockout timer expired
+		else if (package == true && TimeReached(tLockdown, LOCKDOWN_INTERVAL))
+		{
+			Serial.println("Lid closed and timed out with package");
+			changeState(STATE_LOCKING);
+			break;
+		}
+
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_CLOSED_COUNTING);
+		
+  		break;
+
+		case STATE_OPENED:
+		// Just closed and debounced
+		if (!LID_SWITCH_ACTIVE() && TimeReached(tDebounce, DEBOUNCE_INTERVAL))
+		{
+			Serial.println("Lid Was Closed!");
+			changeState(STATE_CLOSED);
+			break;
+		}
+		// Lid open for too long
+		else if (TimeReached(tAjar, LID_OPEN_INTERVAL))
+		{
+			Serial.println("I've been left AJAR");
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_AJAR_ERROR);
+		break;
+		}
+
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_OPEN);
+		
+
+		// Assume package arrived
+		package = true;
+		break;
+
+		case STATE_LOCKED:
+		// Unlock in case of PANIC tripped
+		PanicSensorCheck();
+		// Unlock in case of KEYPAD input tripped
+		KeypadCheck();
+
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_LOCKED); // Red solid
+		
+
+		break;
+
+		case STATE_QUALIFIER:
+		Serial.println("Qualifier!");
+		// Just opened and debounced with package
+		if (TimeReached(tDebounce, DEBOUNCE_INTERVAL) && LID_SWITCH_ACTIVE()  && package == true)
+		{
+			Serial.println("_____________________________________________________________");
+			Serial.println("Package Retrieved");
+			Serial.println("Package state has been reset to false");
+			Serial.println("When lid is closed, we will be ready for the next delivery!");
+			Serial.println("_____________________________________________________________");
+			package = false;
+		}
+		// Closed and debounced with no package
+		else if (!LID_SWITCH_ACTIVE() && TimeReached(tDebounce, DEBOUNCE_INTERVAL) && package == false)
+		{
+			changeState(STATE_CLOSED);
+		}
+
+		// Lid open for too long
+		if (TimeReached(tAjar, LID_OPEN_INTERVAL))
+		{
+			Serial.println("Lid was left AJAR");
+			// Set NEOPixel status light
+			changeStatus(FEEDBACK_STATUS_AJAR_ERROR); // Blue blinking
+		
+		}
+
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_READY_RETRIEVE); // Yellow blinking
+		
+		break;
+
+	}
+
+
+
+}
+
+void PanicSensorCheck(){
+
+bool pirState = 0;         // current state of the button
+bool lastPIRState = 0;     // previous state of the button
+
+	// read the pushbutton input pin:
+  	pirState = digitalRead(PANIC_PIR_SNSR);
+  	// compare the buttonState to its previous state
+  	if (pirState != lastPIRState) {
+    // if the state has changed, increment the counter
+    if (pirState == 1 && TimeReached(tPircheck, DEBOUNCE_INTERVAL)) {
+		changeState(STATE_UNLOCKING);
+		Serial.println("PIR was triggered");
+		}
+    } 
+  
+  // save the current state as the last state, for next time through the loop
+  lastPIRState = pirState;
+
+}
+
+void KeypadCheck(){
+
+bool keypadState = 0;         // current state of the button
+bool lastKEYPADState = 0;     // previous state of the button
+
+	// read the pushbutton input pin:
+  	keypadState = digitalRead(KEYPAD_TRIGGER);
+  	// compare the buttonState to its previous state
+  	if (keypadState != lastKEYPADState) {
+    // if the state has changed, increment the counter
+    if (keypadState == 1 && TimeReached(tKeycheck, DEBOUNCE_INTERVAL)) {
+		changeState(STATE_UNLOCKING);
+		Serial.println("KEYPAD was triggered");
+		}
+    } 
+
+  // save the current state as the last state, for next time through the loop
+  lastKEYPADState = keypadState;
+
+}
+
+/*****************************************************************************************************************************
+* FSM Change State Function for ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**************************************************************************************************************************** */
+void changeState(int new_state){
+	box_state = new_state;
+}
 
 void init_Colormap(){
 	Serial.println("VOID Colormap function message");
@@ -19,11 +332,11 @@ void NeoStatus_Tasker(){
 	switch(neo_mode){
         case ANIMATION_MODE_NOTIFICATIONS_ID:
           NeoStatus_SubTask();
+		  NEO_Feedback_Display();
         break;
         case ANIMATION_MODE_NONE: default: break; // resting position call be called EVERY loop without doing anything, optional, disable "NeoStatus_Tasker" with a flag
     }
 } 
-
 
 // This function will be called EVERY LOOP because it checks "tRateUpdate" for if each pixel needs to be updated, so dont add anything else in here, how this works is set elsewhere
 void NeoStatus_SubTask(){
@@ -121,8 +434,6 @@ void NeoStatus_SubTask(){
   }
 }
 	
-
-
 
 void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 	switch (status){
