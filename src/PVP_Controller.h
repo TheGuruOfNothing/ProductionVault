@@ -39,7 +39,6 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 
 //RELAYS
 //#define ON_LOGIC_LEVEL HIGH  //Opened when LOW
-
 #define RELAY_LOCK_INIT()      	pinMode(RELAY_LOCK_PIN,OUTPUT)
 #define RELAY_LOCK_START()	 	digitalWrite(RELAY_LOCK_PIN,LOW)
 //#define RELAY_LOCK_ONOFF()     	!digitalRead(RELAY_LOCK_PIN) //opened when LOW
@@ -88,8 +87,6 @@ uint8_t status = FEEDBACK_STATUS_UNLOCKING;
 //Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
 int box_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
-
-
 
 //Function prototypes
 void changeState(int new_state);

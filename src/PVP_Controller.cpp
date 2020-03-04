@@ -36,7 +36,7 @@ License along with VaultController.  If not, see
 #include <NeoPixelBus.h>
 #include "PVP_Controller.h"
 
-#define BUILD_NUMBER_CTR "v0_52"
+#define BUILD_NUMBER_CTR "v0_53"
 
 // Levels of stability (from testing to functional)
 #define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
