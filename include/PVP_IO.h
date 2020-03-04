@@ -1,6 +1,6 @@
 #ifndef PVP_IO_H
 #define PVP_IO_H
-#endif
+
 #include <Arduino.h>
 
 // I/O
@@ -55,3 +55,6 @@
 //#define AUX_RELAY_PIN_ONOFF() !digitalRead(AUX_RELAY_PIN) //opened when LOW
 #define AUX_RELAY_PIN_ON()      digitalWrite(AUX_RELAY_PIN,HIGH) //opened when LOW
 #define AUX_RELAY_PIN_OFF()     digitalWrite(AUX_RELAY_PIN,LOW) //opened when LOW
+
+
+#endif //PVP_IO.h

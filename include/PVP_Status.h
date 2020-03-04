@@ -1,6 +1,6 @@
 #ifndef PVP_STATUS_H
 #define PVP_STATUS_H
-#endif
+
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -71,3 +71,5 @@ struct NOTIF{
 			uint16_t auto_time_off_secs = 0; // reset pixel to off
     	}pixel[PIXEL_COUNT];
 	}notif;
+
+#endif //PVP_Status.h
