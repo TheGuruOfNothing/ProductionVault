@@ -4,6 +4,20 @@
 #include "PVP_Actuator.h"
 #include "PVP_Timer.h"
 
+#ifndef PVP_STATUS_H
+#define PVP_STATUS_H
+#endif
+#ifndef PVP_IO_H
+#define PVP_IO_H
+#endif
+#ifndef PVP_ACTUATOR.H
+#define PVP_ACTUATOR.H
+#endif
+#ifndef PVP_TIMER.H
+#define PVP_TIMER.H
+#endif
+
+
 
 //Switch-case for vault states
 enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
