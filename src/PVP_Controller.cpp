@@ -76,7 +76,7 @@ void setup()
 	notif.fForceStatusUpdate = true;
 	  Serial.println("Strip cleared in setup...");
 
-
+	memset(&timervals,0,sizeof(timervals)); //Instantiating the timer struct
 }
 
 /******************************************************************************************************************************
@@ -87,16 +87,16 @@ void setup()
 
 void loop(){
 
-	NeoStatus_Tasker(); // called always without delay
+	//NeoStatus_Tasker(); // called always without delay
 	Actuator_Tasker();
 	
-	
+
 
     //Lets use this to trigger every 10 seconds. 
 	// We will work on settings a notification pixel to blink for 6 seconds then turn itself off, 
 	// repeating 4 seconds later when this fires again.
 	//	if(TimeReached(&tSavedFeedbackDisplay,10000)){
-	//	status = FEEDBACK_STATUS_CLOSED_COUNTING; // forcing mode
+	//	status = FEEDBACK_STATUS_READY; // forcing mode
 	//	NEO_Feedback_Display();		
 	//	Serial.println("NeoStatus_Tasker timer timed out and reset...");
 	//}
@@ -106,14 +106,26 @@ void loop(){
 
 
 
-int package = false;
+
+
 
 
 void Actuator_Tasker(){
+	
+	uint8_t package = false;
+
+	if (TimeReached(&tStatusCheck, RESPONSE_INTERVAL3)){
+			Serial.print("Package Status is... ");
+			Serial.println(package);
+			Serial.print("We're in box state...");
+			Serial.println(box_state);
+		}
+
+
     switch (box_state){
-		case STATE_UNLOCKING:
+		case STATE_UNLOCKING: // %%%%%%%%% 0000000000000000000000000000000000000000000000000000000000000000000000000000000
 		// Unlocked with package
-		if (package = true && TimeReached(tUnlock, RELAY_INTERVAL))
+		if (TimeReached(*tUnlock0, RELAY_INTERVAL) && (package == true))
 		{
 			Serial.println("Ready for retrieval");
 		// Stops actuator power
@@ -124,33 +136,35 @@ void Actuator_Tasker(){
 		// Unlocked and no package
 		else 
 		{
-			if (package == false && TimeReached(tUnlock, RELAY_INTERVAL)) 
+			if (TimeReached(&tUnlock1, RELAY_INTERVAL)) 
 			{
-				Serial.println("Ready for delivery");
 		// Stops actuator power
-				RELAY_UNLOCK_OFF();
-				Serial.println("Unlock relay turned off");
-				changeState(STATE_CLOSED);
+			RELAY_UNLOCK_OFF();
+			Serial.println("Unlock relay turned off");
+			Serial.println("Ready for delivery");
+			changeState(STATE_CLOSED); // state 2
 		break;
 			}
 		}
 
-		if (TimeReached(tResponse, RESPONSE_INTERVAL)){
+		
+		if (TimeReached(&tResponse, RESPONSE_INTERVAL)){
 			Serial.println("Now Unlocking");
 		}
+	
+
 		// Starts actuator power for unlock
-		//Serial.println("Relay activated");
 		RELAY_UNLOCK_ON();
 		
-
+			
 		// Set NEOPixel status light
 		changeStatus(FEEDBACK_STATUS_UNLOCKING);
 		
 		break;
 
-		case STATE_LOCKING:
+		case STATE_LOCKING: //%%%%%%%%% 111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
 		// Completely locked
-		if (TimeReached(tLock, RELAY_INTERVAL))
+		if (TimeReached(&tLock0, RELAY_INTERVAL))
 		{
 			// Stops actuator power
 			RELAY_LOCK_OFF();
@@ -162,24 +176,25 @@ void Actuator_Tasker(){
 		// Starts actuator power / keep locking
 		RELAY_LOCK_ON();
 
-		//Serial.println("Now Locking");
+		if (TimeReached(&tResponse, RESPONSE_INTERVAL)){
+			Serial.println("Now Locking");
+		}
 
 		// Set NEOPixel status light
 		changeStatus(FEEDBACK_STATUS_LOCKING);
 		
 		break;
 
-		case STATE_CLOSED:
-		//Serial.println("Entered STATE_CLOSED");
+		case STATE_CLOSED: //%%%%%%%%%% 22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
 		// Just opened and debounced
-		if (LID_SWITCH_ACTIVE() && TimeReached(tDebounce, DEBOUNCE_INTERVAL))
+		if (LID_SWITCH_ACTIVE() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL))
 		{
 			Serial.println("Lid Was Opened!");
-			changeState(STATE_OPENED);
+			changeState(STATE_OPENED); //state 3
 			break;
 		}
 		// Package arrived and lockout timer expired
-		else if (package == true && TimeReached(tLockdown, LOCKDOWN_INTERVAL))
+		else if (TimeReached(&tLockdown, LOCKDOWN_INTERVAL) && (package == true))
 		{
 			Serial.println("Lid closed and timed out with package");
 			changeState(STATE_LOCKING);
@@ -191,32 +206,31 @@ void Actuator_Tasker(){
 		
   		break;
 
-		case STATE_OPENED:
+		case STATE_OPENED:// %%%%%%%%%%%% 3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333
 		// Just closed and debounced
-		if (!LID_SWITCH_ACTIVE() && TimeReached(tDebounce, DEBOUNCE_INTERVAL))
+		if (!LID_SWITCH_ACTIVE() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL))
 		{
 			Serial.println("Lid Was Closed!");
-			changeState(STATE_CLOSED);
+			changeState(STATE_CLOSED); // state 2
 			break;
 		}
 		// Lid open for too long
-		else if (TimeReached(tAjar, LID_OPEN_INTERVAL))
+		else if (TimeReached(&tAjar, LID_OPEN_INTERVAL))
 		{
 			Serial.println("I've been left AJAR");
 		// Set NEOPixel status light
 		changeStatus(FEEDBACK_STATUS_AJAR_ERROR);
-		break;
-		}
-
-		// Set NEOPixel status light
-		changeStatus(FEEDBACK_STATUS_OPEN);
 		
-
+		}
+			
 		// Assume package arrived
 		package = true;
+		// Set NEOPixel status light
+		changeStatus(FEEDBACK_STATUS_OPEN);
+
 		break;
 
-		case STATE_LOCKED:
+		case STATE_LOCKED: // %%%%%%%%% 444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444
 		// Unlock in case of PANIC tripped
 		PanicSensorCheck();
 		// Unlock in case of KEYPAD input tripped
@@ -228,10 +242,9 @@ void Actuator_Tasker(){
 
 		break;
 
-		case STATE_QUALIFIER:
-		Serial.println("Qualifier!");
+		case STATE_QUALIFIER: // %%%%%%% 55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555
 		// Just opened and debounced with package
-		if (TimeReached(tDebounce, DEBOUNCE_INTERVAL) && LID_SWITCH_ACTIVE()  && package == true)
+		if (TimeReached(&tDebounce, DEBOUNCE_INTERVAL) && LID_SWITCH_ACTIVE()  && package == true)
 		{
 			Serial.println("_____________________________________________________________");
 			Serial.println("Package Retrieved");
@@ -241,13 +254,13 @@ void Actuator_Tasker(){
 			package = false;
 		}
 		// Closed and debounced with no package
-		else if (!LID_SWITCH_ACTIVE() && TimeReached(tDebounce, DEBOUNCE_INTERVAL) && package == false)
+		else if (!LID_SWITCH_ACTIVE() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL) && package == false)
 		{
 			changeState(STATE_CLOSED);
 		}
 
 		// Lid open for too long
-		if (TimeReached(tAjar, LID_OPEN_INTERVAL))
+		if (TimeReached(&tAjar, LID_OPEN_INTERVAL))
 		{
 			Serial.println("Lid was left AJAR");
 			// Set NEOPixel status light
@@ -255,9 +268,22 @@ void Actuator_Tasker(){
 		
 		}
 
+
 		// Set NEOPixel status light
 		changeStatus(FEEDBACK_STATUS_READY_RETRIEVE); // Yellow blinking
 		
+		break;
+
+		case STATE_READY: //%%%%%% 666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
+
+		if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+			Serial.println("VAULT HAS STARTED UP...");
+			tResponse = millis();
+			package = false;
+			changeState(STATE_UNLOCKING);
+		}
+			
+
 		break;
 
 	}
@@ -276,7 +302,7 @@ bool lastPIRState = 0;     // previous state of the button
   	// compare the buttonState to its previous state
   	if (pirState != lastPIRState) {
     // if the state has changed, increment the counter
-    if (pirState == 1 && TimeReached(tPircheck, DEBOUNCE_INTERVAL)) {
+    if (pirState == 1 && TimeReached(&tPircheck, DEBOUNCE_INTERVAL)) {
 		changeState(STATE_UNLOCKING);
 		Serial.println("PIR was triggered");
 		}
@@ -297,7 +323,7 @@ bool lastKEYPADState = 0;     // previous state of the button
   	// compare the buttonState to its previous state
   	if (keypadState != lastKEYPADState) {
     // if the state has changed, increment the counter
-    if (keypadState == 1 && TimeReached(tKeycheck, DEBOUNCE_INTERVAL)) {
+    if (keypadState == 1 && TimeReached(&tKeycheck, DEBOUNCE_INTERVAL)) {
 		changeState(STATE_UNLOCKING);
 		Serial.println("KEYPAD was triggered");
 		}
@@ -313,6 +339,7 @@ bool lastKEYPADState = 0;     // previous state of the button
 **************************************************************************************************************************** */
 void changeState(int new_state){
 	box_state = new_state;
+	//Serial.println(new_state);
 }
 
 void init_Colormap(){
@@ -331,8 +358,8 @@ void NeoStatus_Tasker(){
 
 	switch(neo_mode){
         case ANIMATION_MODE_NOTIFICATIONS_ID:
-          NeoStatus_SubTask();
-		  NEO_Feedback_Display();
+        NeoStatus_SubTask();
+		NEO_Feedback_Display();
         break;
         case ANIMATION_MODE_NONE: default: break; // resting position call be called EVERY loop without doing anything, optional, disable "NeoStatus_Tasker" with a flag
     }
@@ -342,14 +369,14 @@ void NeoStatus_Tasker(){
 void NeoStatus_SubTask(){
 
    // Updates NEO's at 2 min interval OR if force update requested
-  if(TimeReached(notif.tSaved.ForceUpdate,120000)||(notif.fForceStatusUpdate)){
+  if(TimeReached(&notif.tSaved.ForceUpdate,120000)||(notif.fForceStatusUpdate)){
     notif.fForceStatusUpdate = true;
     Serial.println("OPTIONAL FORCING, I USE IT TO MAKE SURE PIXELS NEVER GET STUCK ON SOMETHING NOT INTENDED");
   }
   
   //Animation Types
   for(int i=0;i<PIXEL_COUNT;i++){
-    if(TimeReached(notif.pixel[i].tSavedUpdate,notif.pixel[i].tRateUpdate)||(notif.fForceStatusUpdate)){ notif.fForceStatusUpdate = false;
+    if(TimeReached(&notif.pixel[i].tSavedUpdate,notif.pixel[i].tRateUpdate)||(notif.fForceStatusUpdate)){ notif.fForceStatusUpdate = false;
       switch(notif.pixel[i].mode){
         default:
         case NOTIF_MODE_OFF_ID:
@@ -410,7 +437,7 @@ void NeoStatus_SubTask(){
 	
 
   //Auto turn off
-  if(TimeReached(notif.tSaved.AutoOff,1000)){// if 1 second past
+  if(TimeReached(&notif.tSaved.AutoOff,1000)){// if 1 second past
     for(int i=0;i<PIXEL_COUNT;i++){ //check all
       if(notif.pixel[i].auto_time_off_secs==1){ //if =1 then turn off and clear to 0
         stripbus->SetPixelColor(i,0);
@@ -440,16 +467,21 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		default:
 		case FEEDBACK_STATUS_OFF:
 		case FEEDBACK_STATUS_READY:
-		Serial.println("FS Ready");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Ready");
+			}
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
 
 			notif.pixel[1].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[1].color = preset_color_map[COLOR_GREEN_INDEX];
-			
+	
 		break;
 		case FEEDBACK_STATUS_UNLOCKING:
-			Serial.println("FS Unlocking");
+		if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Unlocking");
+			}
+			
 			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_PULSING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
@@ -462,7 +494,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 			
 		break;
    		case FEEDBACK_STATUS_OPEN:
-		   Serial.println("FS Open");
+		   if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+		   		Serial.println("FS Open");
+			}
 			//notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
@@ -475,7 +509,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		
 		break;
 		case FEEDBACK_STATUS_AJAR_ERROR:
-			Serial.println("FS AJAR");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS AJAR");
+			}
 			notif.pixel[0].period_ms = 500; // 0.25 second between "on"s, so quarter second toggling
 			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
@@ -488,7 +524,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 	
 		break;
 		case FEEDBACK_STATUS_CLOSED_COUNTING:
-			Serial.println("FS Counting");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Counting");
+			}
 			//notif.pixel[0].period_ms = 750; // three quarter second between "on"s, so three quarter second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
@@ -501,7 +539,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		
 		break;
 		case FEEDBACK_STATUS_LOCKING:
-		Serial.println("FS Locking");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Locking");
+			}
 			//notif.pixel[0].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
@@ -514,7 +554,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 		
 		break;
 		case FEEDBACK_STATUS_LOCKED:
-			Serial.println("FS Locked");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Locked");
+			}
 			//notif.pixel[1].period_ms = 1000; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
@@ -526,7 +568,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 		break;
 		case FEEDBACK_STATUS_READY_RETRIEVE:
-			Serial.println("FS Ready Retrieve");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Ready Retrieve");
+			}
 			notif.pixel[0].period_ms = 500; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
@@ -537,7 +581,9 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 
 		break;
 		case FEEDBACK_STATUS_BLINKING_PANIC:
-			Serial.println("FS Panic");
+			if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
+				Serial.println("FS Panic");
+			}
 			notif.pixel[0].period_ms = 150; // 0.5 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_STATIC_ON_ID;
 			notif.pixel[0].color = preset_color_map[COLOR_WHITE_INDEX];
@@ -582,12 +628,17 @@ uint8_t BrtFloatto100(float brt){
 	return round(brt*100.0f);
 }
 
-	uint32_t tSavedFeedbackDisplay = millis();
+	//uint32_t tSavedFeedbackDisplay = millis();
 
 
 // Time elapsed function that updates the time when true
-bool TimeReached(uint32_t tSaved, uint32_t ElapsedTime){
-  if(abs(millis()-tSaved)>=ElapsedTime){ tSaved=millis();
+bool TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
+  if(
+    (abs(millis()-tSaved->millis)>=ElapsedTime)
+    ||(tSaved->run == true)    
+    ){ 
+      tSaved->millis=millis();
+      tSaved->run = false;
     return true;
   }
   return false;
@@ -596,5 +647,6 @@ bool TimeReached(uint32_t tSaved, uint32_t ElapsedTime){
 void changeStatus(int new_status){
 	
 	status = new_status;
+	//Serial.println(new_status);
 	
 }

@@ -85,8 +85,32 @@ FEEDBACK_STATUS_CLOSED_COUNTING,FEEDBACK_STATUS_LOCKING,FEEDBACK_STATUS_LOCKED,F
 uint8_t status = FEEDBACK_STATUS_UNLOCKING;
 
 //Switch-case for vault states
-enum STATES_LID{STATE_UNLOCKING=0,STATE_LOCKING,STATE_OPENED,STATE_CLOSED,STATE_LOCKED,STATE_QUALIFIER};
-int box_state = STATE_UNLOCKING; // Starting state for the vault at power up- current but due to change
+enum STATES_LID{STATE_UNLOCKING=0,	// 0
+				STATE_LOCKING,		// 1
+				STATE_CLOSED,		// 2
+				STATE_OPENED,		// 3
+				STATE_LOCKED,		// 4
+				STATE_QUALIFIER,	// 5
+				STATE_READY};		// 6
+int box_state = STATE_READY; // Starting state for the vault at power up
+
+    #define STATE_UNLOCKING_CTR           		"UNLOCKING"
+    #define STATE_LOCKING_CTR    				"LOCKING"
+    #define STATE_OPENED_CTR     				"OPENED"
+    #define STATE_CLOSED_CTR  					"CLOSED"
+    #define STATE_LOCKED_CTR   					"LOCKED"
+    #define STATE_QUALIFIER_CTR   				"QUALIFYING"
+	
+    #define FEEDBACK_STATUS_OFF_CTR           	"FS OFF"
+    #define FEEDBACK_STATUS_READY_CTR    		"FS READY"
+    #define FEEDBACK_STATUS_UNLOCKING_CTR     	"FS UNLOCKING"
+    #define FEEDBACK_STATUS_OPEN_CTR  			"FS OPEN"
+    #define FEEDBACK_STATUS_AJAR_ERROR_CTR    	"FS AJAR"
+    #define FEEDBACK_STATUS_CLOSED_COUNTING_CTR "FS COUNTING"
+    #define FEEDBACK_STATUS_LOCKING_CTR    		"FS LOCKING"
+	#define FEEDBACK_STATUS_LOCKED_CTR    		"FS LOCKED"
+	#define FEEDBACK_STATUS_READY_RETRIEVE_CTR  "FS RETRIEVE READY"
+	#define FEEDBACK_STATUS_BLINKING_PANIC_CTR  "FS PANIC"
 
 //Function prototypes
 void changeState(int new_state);
@@ -94,11 +118,14 @@ void Actuator_Tasker(void);
 void PanicSensorCheck();
 void KeypadCheck();
 void changeStatus(int new_status);
-bool TimeReached(uint32_t tSaved, uint32_t ElapsedTime);
+bool TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
 void NeoStatus_Tasker(void);
 void NeoStatus_SubTask();
 void init_Colormap(void);
 void NEO_Feedback_Display(void);
+
+
+// NEOPIXEL RELATED STUFF.......................................................................................................................
 
 float    Hue360toFloat(uint16_t hue);
 float    Sat100toFloat(uint8_t sat);
@@ -126,18 +153,32 @@ struct NOTIF{
     	}pixel[PIXEL_COUNT];
 	}notif;
 
+//TIMER RELATED ITEMS...............................................................................................................................
+
 // Timer Intervals - ALL non-blocking timers
 #define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
 #define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
 #define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
 #define DEBOUNCE_INTERVAL	200			// Button Debounce
-#define RESPONSE_INTERVAL	1500		// Timed response for debug serial.print
+#define RESPONSE_INTERVAL	500			// Timed response for debug serial.print
+#define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
+#define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
 
-uint32_t tUnlock = 0;
-uint32_t tLock = 0;
+struct TIMER_HANDLER{
+uint32_t millis = 0;
+uint8_t run = false; // send early
+uint32_t tUnlock0;
+uint32_t tUnlock1 = 0;
+uint32_t tLock0 = 0;
+uint32_t tLock1 = 0;
 uint32_t tResponse = 0;
 uint32_t tDebounce = 0;
 uint32_t tLockdown = 0;
 uint32_t tAjar = 0;
 uint32_t tKeycheck = 0;
 uint32_t tPircheck = 0;
+uint32_t tStatusCheck = 0;
+uint32_t tSavedFeedbackDisplay = millis;
+}timervals;
+
+
