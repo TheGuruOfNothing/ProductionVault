@@ -76,7 +76,8 @@ void setup()
 	notif.fForceStatusUpdate = true;
 	  Serial.println("Strip cleared in setup...");
 
-	memset(&timervals,0,sizeof(timervals)); //Instantiating the timer struct
+//NO LONGER A STRUCT
+	// memset(&timervals,0,sizeof(timervals)); //Instantiating the timer struct
 }
 
 /******************************************************************************************************************************
@@ -125,7 +126,7 @@ void Actuator_Tasker(){
     switch (box_state){
 		case STATE_UNLOCKING: // %%%%%%%%% 0000000000000000000000000000000000000000000000000000000000000000000000000000000
 		// Unlocked with package
-		if (TimeReached(timervals.tUnlock0, RELAY_INTERVAL) && (package == true))
+		if (TimeReached(&tUnlock0, RELAY_INTERVAL) && (package == true))
 		{
 			Serial.println("Ready for retrieval");
 		// Stops actuator power
@@ -278,7 +279,6 @@ void Actuator_Tasker(){
 
 		if (TimeReached(&tResponse, RESPONSE_INTERVAL2)){
 			Serial.println("VAULT HAS STARTED UP...");
-			tResponse = millis();
 			package = false;
 			changeState(STATE_UNLOCKING);
 		}
@@ -639,6 +639,14 @@ uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
     ){ 
       tSaved->millis=millis();
       tSaved->run = false;
+    return true;
+  }
+  return false;
+}
+
+uint8_t TimeReached(uint32_t* tSaved, uint32_t ElapsedTime){
+  if(abs(millis()-*tSaved)>=ElapsedTime){ 
+      *tSaved=millis();
     return true;
   }
   return false;

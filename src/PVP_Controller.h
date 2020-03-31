@@ -112,22 +112,36 @@ int box_state = STATE_READY; // Starting state for the vault at power up
 	#define FEEDBACK_STATUS_READY_RETRIEVE_CTR  "FS RETRIEVE READY"
 	#define FEEDBACK_STATUS_BLINKING_PANIC_CTR  "FS PANIC"
 
+
+// DONT TOUCH THIS AT ALL
+// ITS CREATING YOUR OWN "INT", ITS CREATING A VARIABLE TYPE (EG char, int, unit8_t etc)
 typedef struct TIMER_HANDLER{
-uint32_t millis;
-uint8_t run = false; // send early
-uint32_t tUnlock0;
-uint32_t tUnlock1;
-uint32_t tLock0;
-uint32_t tLock1;
-uint32_t tResponse;
-uint32_t tDebounce;
-uint32_t tLockdown;
-uint32_t tAjar;
-uint32_t tKeycheck;
-uint32_t tPircheck;
-uint32_t tStatusCheck;
-uint32_t tSavedFeedbackDisplay = millis;
-}timervals;
+  uint32_t millis = 0;
+  uint8_t run = false; // run immediately
+}timereached_t;
+
+
+
+
+// typedef struct TIMER_HANDLER{
+// 	uint8_t millis;
+// 	uint8_t run = false; // send early
+
+	timereached_t tUnlock0;
+	timereached_t tUnlock1;
+	timereached_t tLock0;
+	timereached_t tLock1;
+	timereached_t tResponse;
+	timereached_t tDebounce;
+	timereached_t tLockdown;
+	timereached_t tAjar;
+	timereached_t tKeycheck;
+	timereached_t tPircheck;
+	timereached_t tStatusCheck;
+	timereached_t tSavedFeedbackDisplay;
+
+
+// }timervals;
 
 //Function prototypes
 void changeState(int new_state);
@@ -136,6 +150,7 @@ void PanicSensorCheck();
 void KeypadCheck();
 void changeStatus(int new_status);
 uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
+uint8_t TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
 void NeoStatus_Tasker(void);
 void NeoStatus_SubTask();
 void init_Colormap(void);
