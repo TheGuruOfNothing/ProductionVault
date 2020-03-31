@@ -112,13 +112,30 @@ int box_state = STATE_READY; // Starting state for the vault at power up
 	#define FEEDBACK_STATUS_READY_RETRIEVE_CTR  "FS RETRIEVE READY"
 	#define FEEDBACK_STATUS_BLINKING_PANIC_CTR  "FS PANIC"
 
+typedef struct TIMER_HANDLER{
+uint32_t millis;
+uint8_t run = false; // send early
+uint32_t tUnlock0;
+uint32_t tUnlock1;
+uint32_t tLock0;
+uint32_t tLock1;
+uint32_t tResponse;
+uint32_t tDebounce;
+uint32_t tLockdown;
+uint32_t tAjar;
+uint32_t tKeycheck;
+uint32_t tPircheck;
+uint32_t tStatusCheck;
+uint32_t tSavedFeedbackDisplay = millis;
+}timervals;
+
 //Function prototypes
 void changeState(int new_state);
 void Actuator_Tasker(void);
 void PanicSensorCheck();
 void KeypadCheck();
 void changeStatus(int new_status);
-bool TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
+uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
 void NeoStatus_Tasker(void);
 void NeoStatus_SubTask();
 void init_Colormap(void);
@@ -164,21 +181,6 @@ struct NOTIF{
 #define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
 #define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
 
-struct TIMER_HANDLER{
-uint32_t millis = 0;
-uint8_t run = false; // send early
-uint32_t tUnlock0;
-uint32_t tUnlock1 = 0;
-uint32_t tLock0 = 0;
-uint32_t tLock1 = 0;
-uint32_t tResponse = 0;
-uint32_t tDebounce = 0;
-uint32_t tLockdown = 0;
-uint32_t tAjar = 0;
-uint32_t tKeycheck = 0;
-uint32_t tPircheck = 0;
-uint32_t tStatusCheck = 0;
-uint32_t tSavedFeedbackDisplay = millis;
-}timervals;
+
 
 

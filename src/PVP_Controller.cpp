@@ -125,7 +125,7 @@ void Actuator_Tasker(){
     switch (box_state){
 		case STATE_UNLOCKING: // %%%%%%%%% 0000000000000000000000000000000000000000000000000000000000000000000000000000000
 		// Unlocked with package
-		if (TimeReached(*tUnlock0, RELAY_INTERVAL) && (package == true))
+		if (TimeReached(timervals.tUnlock0, RELAY_INTERVAL) && (package == true))
 		{
 			Serial.println("Ready for retrieval");
 		// Stops actuator power
@@ -632,7 +632,7 @@ uint8_t BrtFloatto100(float brt){
 
 
 // Time elapsed function that updates the time when true
-bool TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
+uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
   if(
     (abs(millis()-tSaved->millis)>=ElapsedTime)
     ||(tSaved->run == true)    
