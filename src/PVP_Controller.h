@@ -113,6 +113,17 @@ int box_state = STATE_READY; // Starting state for the vault at power up
 	#define FEEDBACK_STATUS_BLINKING_PANIC_CTR  "FS PANIC"
 
 
+//BASE VAULT FSM TIMER RELATED ITEMS...............................................................................................................................
+
+// Timer Intervals - ALL non-blocking timers
+#define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
+#define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
+#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
+#define DEBOUNCE_INTERVAL	200			// Button Debounce
+#define RESPONSE_INTERVAL	500			// Timed response for debug serial.print
+#define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
+#define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
+
 // DONT TOUCH THIS AT ALL
 // ITS CREATING YOUR OWN "INT", ITS CREATING A VARIABLE TYPE (EG char, int, unit8_t etc)
 typedef struct TIMER_HANDLER{
@@ -120,13 +131,7 @@ typedef struct TIMER_HANDLER{
   uint8_t run = false; // run immediately
 }timereached_t;
 
-
-
-
-// typedef struct TIMER_HANDLER{
-// 	uint8_t millis;
-// 	uint8_t run = false; // send early
-
+	//Individual State Timers
 	timereached_t tUnlock0;
 	timereached_t tUnlock1;
 	timereached_t tLock0;
@@ -141,20 +146,6 @@ typedef struct TIMER_HANDLER{
 	timereached_t tSavedFeedbackDisplay;
 
 
-// }timervals;
-
-//Function prototypes
-void changeState(int new_state);
-void Actuator_Tasker(void);
-void PanicSensorCheck();
-void KeypadCheck();
-void changeStatus(int new_status);
-uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
-uint8_t TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
-void NeoStatus_Tasker(void);
-void NeoStatus_SubTask();
-void init_Colormap(void);
-void NEO_Feedback_Display(void);
 
 
 // NEOPIXEL RELATED STUFF.......................................................................................................................
@@ -185,16 +176,21 @@ struct NOTIF{
     	}pixel[PIXEL_COUNT];
 	}notif;
 
-//TIMER RELATED ITEMS...............................................................................................................................
 
-// Timer Intervals - ALL non-blocking timers
-#define LID_OPEN_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left open
-#define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
-#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
-#define DEBOUNCE_INTERVAL	200			// Button Debounce
-#define RESPONSE_INTERVAL	500			// Timed response for debug serial.print
-#define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
-#define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
+
+
+//Function prototypes
+void changeState(int new_state);
+void Actuator_Tasker(void);
+void PanicSensorCheck();
+void KeypadCheck();
+void changeStatus(int new_status);
+uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
+uint8_t TimeReached(uint32_t* tSaved, uint32_t ElapsedTime);
+void NeoStatus_Tasker(void);
+void NeoStatus_SubTask();
+void init_Colormap(void);
+void NEO_Feedback_Display(void);
 
 
 

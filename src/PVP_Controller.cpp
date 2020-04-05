@@ -195,7 +195,7 @@ void Actuator_Tasker(){
 			break;
 		}
 		// Package arrived and lockout timer expired
-		else if (TimeReached(&tLockdown, LOCKDOWN_INTERVAL) && (package == true))
+		else if (package == true && TimeReached (&tLockdown, LOCKDOWN_INTERVAL))
 		{
 			Serial.println("Lid closed and timed out with package");
 			changeState(STATE_LOCKING);
@@ -294,8 +294,8 @@ void Actuator_Tasker(){
 
 void PanicSensorCheck(){
 
-bool pirState = 0;         // current state of the button
-bool lastPIRState = 0;     // previous state of the button
+uint8_t pirState = 0;         // current state of the button
+uint8_t lastPIRState = 0;     // previous state of the button
 
 	// read the pushbutton input pin:
   	pirState = digitalRead(PANIC_PIR_SNSR);
@@ -315,8 +315,8 @@ bool lastPIRState = 0;     // previous state of the button
 
 void KeypadCheck(){
 
-bool keypadState = 0;         // current state of the button
-bool lastKEYPADState = 0;     // previous state of the button
+uint8_t keypadState = 0;         // current state of the button
+uint8_t lastKEYPADState = 0;     // previous state of the button
 
 	// read the pushbutton input pin:
   	keypadState = digitalRead(KEYPAD_TRIGGER);
@@ -341,6 +341,8 @@ void changeState(int new_state){
 	box_state = new_state;
 	//Serial.println(new_state);
 }
+/***************************************************************************************************************************** */
+
 
 void init_Colormap(){
 	Serial.println("VOID Colormap function message");
