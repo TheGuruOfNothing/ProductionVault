@@ -26,7 +26,7 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 
 //Switches or Buttons -  
 #define LID_SWITCH_INIT() 		 	pinMode(LID_SWITCH, INPUT_PULLUP)
-#define LID_SWITCH_ACTIVE()      	digitalRead(LID_SWITCH)
+  #define LID_SWITCH_ONOFF()        !digitalRead(LID_SWITCH)
 #define PANIC_PIR_SNSR_INIT()	 	pinMode(PANIC_PIR_SNSR, INPUT)
 #define PANIC_PIR_SNSR_ACTIVE()  	digitalRead(PANIC_PIR_SNSR)
 #define KEYPAD_TRIGGER_INIT()	 	pinMode(KEYPAD_TRIGGER, INPUT_PULLUP)
@@ -144,6 +144,15 @@ typedef struct TIMER_HANDLER{
 	timereached_t tPircheck;
 	timereached_t tStatusCheck;
 	timereached_t tSavedFeedbackDisplay;
+
+typedef struct GPIO_DETECT{
+    uint8_t state = false;
+    uint8_t isactive = false;
+    uint8_t ischanged = false;
+    uint32_t tSaved;
+    uint32_t tDetectTimeforDebounce;
+ };
+GPIO_DETECT lid_switch;
 
 
 

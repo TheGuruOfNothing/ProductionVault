@@ -188,7 +188,7 @@ void Actuator_Tasker(){
 
 		case STATE_CLOSED: //%%%%%%%%%% 22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
 		// Just opened and debounced
-		if (LID_SWITCH_ACTIVE() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL))
+		if (LID_SWITCH_ONOFF() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL))
 		{
 			Serial.println("Lid Was Opened!");
 			changeState(STATE_OPENED); //state 3
@@ -209,7 +209,7 @@ void Actuator_Tasker(){
 
 		case STATE_OPENED:// %%%%%%%%%%%% 3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333
 		// Just closed and debounced
-		if (!LID_SWITCH_ACTIVE() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL))
+		if (!LID_SWITCH_ONOFF() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL))
 		{
 			Serial.println("Lid Was Closed!");
 			changeState(STATE_CLOSED); // state 2
@@ -245,7 +245,7 @@ void Actuator_Tasker(){
 
 		case STATE_QUALIFIER: // %%%%%%% 55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555
 		// Just opened and debounced with package
-		if (TimeReached(&tDebounce, DEBOUNCE_INTERVAL) && LID_SWITCH_ACTIVE()  && package == true)
+		if (TimeReached(&tDebounce, DEBOUNCE_INTERVAL) && LID_SWITCH_ONOFF()  && package == true)
 		{
 			Serial.println("_____________________________________________________________");
 			Serial.println("Package Retrieved");
@@ -255,7 +255,7 @@ void Actuator_Tasker(){
 			package = false;
 		}
 		// Closed and debounced with no package
-		else if (!LID_SWITCH_ACTIVE() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL) && package == false)
+		else if (!LID_SWITCH_ONOFF() && TimeReached(&tDebounce, DEBOUNCE_INTERVAL) && package == false)
 		{
 			changeState(STATE_CLOSED);
 		}
@@ -334,6 +334,25 @@ uint8_t lastKEYPADState = 0;     // previous state of the button
 
 }
 
+void CheckLidState(){
+  
+ if ((LID_SWITCH_ONOFF()!=lid_switch.state)
+  &&(TimeReached(&tDebounce, DEBOUNCE_INTERVAL)) 
+ ){
+        
+    lid_switch.state = LID_SWITCH_ONOFF(); //tDetectTime = millis();
+    if(lid_switch.state){ Serial.print("Active high lid_switch");
+      lid_switch.isactive = true;
+      lid_switch.tDetectTimeforDebounce = millis();
+   
+
+    }else{ Serial.print("Active low lid_switch");
+        lid_switch.isactive = false;
+
+    }
+    lid_switch.ischanged = true;
+ }
+}
 /*****************************************************************************************************************************
 * FSM Change State Function for ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 **************************************************************************************************************************** */
