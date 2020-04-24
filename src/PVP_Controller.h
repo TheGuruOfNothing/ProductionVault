@@ -79,13 +79,38 @@
 */
 
 //Switch-case for vault states
-enum STATES_BOX{STATE_CLOSED=0,STATE_OPENED,STATE_LOCKING,STATE_UNLOCKING};
-uint8_t box_state = STATE_CLOSED; // current switch case
+enum STATES_BOX{STATE_UNKNOWN=0,STATE_CLOSED,STATE_OPENING,STATE_OPENED,STATE_CLOSING};
+uint8_t box_state = STATE_UNKNOWN; // current switch case
 uint8_t old_box_state;
 
 enum STATES_LID{LID_CHECK_LOOP=0, LID_AJAR};
 uint8_t lid_state = LID_CHECK_LOOP; // current switch case
 
+
+
+enum LoggingLevels {LOG_LEVEL_NONE, 
+                    LOG_LEVEL_ERROR, 
+                    LOG_LEVEL_WARN, 
+                    LOG_LEVEL_TEST, // New level with elevated previledge - during code development use only
+                    LOG_LEVEL_INFO, 
+                    LOG_LEVEL_DEBUG, 
+                    LOG_LEVEL_DEBUG_MORE, 
+                    LOG_LEVEL_DEBUG_LOWLEVEL, 
+                    LOG_LEVEL_ALL};
+
+
+// For sending without network during uploads
+void AddSerialLog_P(uint8_t loglevel, PGM_P formatP, ...);
+uint8_t seriallog_level = LOG_LEVEL_DEBUG;
+bool enable_serial_logging_filtering = false;
+char log_data[500];
+const char* GetLogLevelNameShortbyID(uint8_t loglevel);
+
+
+
+void SubTask_TimerLidState();
+void SubTask_ReadLidState_OpenClosed();
+uint16_t lid_opened_timeout_secs = 0; 
 
 
 // Timer Intervals - ALL non-blocking timers CURRENTLY COMMENTED OUT FOR FUTURE USE??????
@@ -112,6 +137,7 @@ typedef struct TIMER_HANDLER{
 	timereached_t tDebounce;
 	timereached_t tAjar;
 	timereached_t tShift;
+	timereached_t tSavedTimerLidStateTicker;
 	/* - UNUSED ATM - 
 	timereached_t tUnlock1;
 	//timereached_t tLock1;
@@ -136,7 +162,7 @@ typedef struct TIMER_HANDLER{
 
 //Function prototypes
 uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
-void Actuator_Tasker(void);
+void Tasker_Lid(void);
 void Actuator_Subtask();
 void Lid_Tasker();
 void ChangeState(int new_state);
@@ -392,7 +418,7 @@ struct NOTIF{
 
 //Function prototypes
 void changeState(int new_state);
-void Actuator_Tasker(void);
+void Tasker_Lid(void);
 void PanicSensorCheck();
 void KeypadCheck();
 void changeStatus(int new_status);

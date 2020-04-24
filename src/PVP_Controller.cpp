@@ -3,22 +3,20 @@
 
 
 
-
-
 /* >>>>>>>>>>>>>>>>>>>>>>>>>>     MAIN CODE HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
 //*******************************************************************************************************/
 
 void setup() {
 Serial.begin(74480);
 
-//lid_init(); not used at the moment, commented out 
-box_init();
+	//lid_init(); not used at the moment, commented out 
+	box_init();
 
 }
 
 void loop() {
 
-Actuator_Tasker();
+	Tasker_Lid();
 
 }
 
@@ -26,7 +24,34 @@ Actuator_Tasker();
 //*******************************************************************************************************/
 
 void box_init(){
-	Serial.println("Initializing Box");
+
+
+	// Examples of new logging method
+
+
+	AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Initializing Box"));    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
+
+
+
+	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %d"),2);    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
+	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %c"),'2');    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
+	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %s %s $d"),"or like", "this", 3);    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
+
+	// If you look at my function, the "..." means it accepts AS MANY extra terms as you want eg "or like", "this", comma with each
+
+
+															// But never FLOATS, they wont work on esp due to lib restrictions
+	//AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %f"),WRONG);    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
+
+
+	// IF you use the wrong indentifier .... the program WILL compile and flash and WILL CRASH!!!!
+	/***
+	 * %s = string eg "hello"
+	 * %c = char and only one eg 'c'    // notice single quotes
+	 * %d = number (but not float)
+	 * */
+
+
 	STATE_ONE_LED_INIT(); STATE_ONE_LED_START();
 	STATE_TWO_LED_INIT(); STATE_TWO_LED_START();
 	STATE_THREE_LED_INIT(); STATE_THREE_LED_START();
@@ -40,33 +65,46 @@ void lid_init(){
 	LID_SWITCH_INIT();
 }
 
-void Actuator_Tasker(){
-	
 
-	Actuator_Subtask();
+// Read lid position and set output
+void Tasker_Lid(){
+
+	// Read the state, named like this, because a future idea could be a linear distance measurement ie not completely closed or open, but transition state with position
+	SubTask_ReadLidState_OpenClosed();
+	SubTask_TimerLidState(); // Add timers that tick down regardless of state for security reasons
+
 
 	switch (box_state){
 		case STATE_CLOSED: 
-		STATE_ONE_LED_ON();
-		if (TimeReached(&tShift, SHIFT_INTERVAL)){
-			STATE_ONE_LED_OFF();
-			box_state = STATE_OPENED;
-		}
+			// if(unlocked)
+				// lock it
+			// if (locked)
+				// perhaps flash neoled every 10 seconds to show its locked
+		break;
+		case STATE_OPENING:
+
+			// example, set open time to max of 60 seconds .... you could add a button/motion detector inside the box that reset this again 
+			lid_opened_timeout_secs = 60;
+
+			//set neopixel led			
+			// notif.pixel[0].period_ms = 500; // 0.25 second between "on"s, so quarter second toggling
+			// notif.pixel[0].mode = NOTIF_MODE_PULSING_ON_ID;
+			// notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
+
+		
+		break;
+		case STATE_UNKNOWN: // auto close if we don't know, you can set this as a "timeout" option.. note, not "break" so this automatically runs into closing
+		case STATE_CLOSING: 
+
+			lid_opened_timeout_secs = 0; // disable/reset
+		
+		
 		break;
 		case STATE_OPENED:
-		if (TimeReached(&tShift, SHIFT_INTERVAL)){
-			box_state = STATE_LOCKING;
-		}
-		break;
-		case STATE_LOCKING: 
-		if (TimeReached(&tShift, SHIFT_INTERVAL)){
-			box_state = STATE_UNLOCKING;
-		}
-		break;
-		case STATE_UNLOCKING:
-		if (TimeReached(&tShift, SHIFT_INTERVAL)){
-			box_state = STATE_CLOSED;
-		}
+
+
+
+			
 		break;
 		default:
 			Serial.println("You screwed up big time buddy... fix your friggen actuator code!");
@@ -74,63 +112,145 @@ void Actuator_Tasker(){
 	}
 }
 
-void Actuator_Subtask(){
-	if(box_state!=old_box_state){ //if the two don't match
-    Serial.print("Currently in -"); Serial.println(box_state); //Then print "currently in - X box state" in serial
-    old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
-	}
+// void Actuator_Subtask(){
+// 	if(box_state!=old_box_state){ //if the two don't match
+//     Serial.print("Currently in -"); Serial.println(box_state); //Then print "currently in - X box state" in serial
+//     old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
+// 	}
 
-	if(box_state==STATE_LOCKING){
-		STATE_TWO_LED_ON();
-	}else{
-		STATE_TWO_LED_OFF();
-	}
+// 	if(box_state==STATE_LOCKING){
+// 		STATE_TWO_LED_ON();
+// 	}else{
+// 		STATE_TWO_LED_OFF();
+// 	}
 
-	if(box_state==STATE_OPENED){
-		STATE_THREE_LED_ON();
-	}else{
-		STATE_THREE_LED_OFF();
-	}
+// 	if(box_state==STATE_OPENED){
+// 		STATE_THREE_LED_ON();
+// 	}else{
+// 		STATE_THREE_LED_OFF();
+// 	}
 
-	if(box_state==STATE_UNLOCKING){
-		STATE_FOUR_LED_ON();
-	}else{
-		STATE_FOUR_LED_OFF();
-	}
-}
+// 	if(box_state==STATE_UNLOCKING){
+// 		STATE_FOUR_LED_ON();
+// 	}else{
+// 		STATE_FOUR_LED_OFF();
+// 	}
+// }
 
-void Lid_Tasker(){ 
+void SubTask_ReadLidState_OpenClosed(){
 
-	switch (lid_state){
-		case LID_CHECK_LOOP:
-  			if ((LID_SWITCH_ONOFF()!=lid_switch.state)&&(TimeReached(&tDebounce, DEBOUNCE_INTERVAL)))
- 			{
-        	lid_switch.state = LID_SWITCH_ONOFF(); //tDetectTime = millis();
-    			if(lid_switch.state)
-				{	Serial.print("Active high lid_switch");
-      				lid_switch.isactive = true;
-      				lid_switch.tDetectTimeforDebounce = millis();
-   			}else{  Serial.print("Active low lid_switch");
-        			lid_switch.isactive = false;
-			}
-    		lid_switch.ischanged = true;
- 			}
-		break;
-		case LID_AJAR:
-		//DO SOMETHING HERE TO CHECK IF THE LID WAS LEFT OPEN TOO LONG THEN RESPOND TO IT
-		if (lid_switch.isactive==true && TimeReached(&tAjar, LID_AJAR_INTERVAL)){
-			//ASSUME THAT I NEED TO RESET tAjar TO MILLIS() HERE
-			//BLINK BETWEEN BLUE AND RED RAPIDLY
-		}else{
-			//not sure if this is needed yet or what to do with it
+	if ((LID_SWITCH_ONOFF()!=lid_switch.state)&&(TimeReached(&tDebounce, DEBOUNCE_INTERVAL)))
+	{
+		lid_switch.state = LID_SWITCH_ONOFF();
+		if(lid_switch.state)
+		{
+			Serial.print("Active high lid_switch");
+			lid_switch.isactive = true;
+			lid_switch.tDetectTimeforDebounce = millis();
+		}else
+		{  
+			Serial.print("Active low lid_switch");
+			lid_switch.isactive = false;
 		}
-		break;
-		default:
-			Serial.println("You screwed up big time buddy... fix your friggen lid code!");
-		break;
-		
+	lid_switch.ischanged = true;
 	}
+
 }
+
+void SubTask_TimerLidState(){
+
+	// you can use this 1 second timer for many different tickers (1 second timeouts)
+  if(TimeReached(&tSavedTimerLidStateTicker,1000)){
+
+	  //optional idea
+	//#define ENABLE_NEO_TIMEOUT_INDICATOR //just here as I test
+	#ifdef ENABLE_NEO_TIMEOUT_INDICATOR
+	if(lid_opened_timeout_secs < 10){
+		notif.pixel[0].period_ms = map(lid_opened_timeout_secs,0,10,20,200); // maps the last 10 seconds into 20-200ms blinking .. play with the numbers 
+		notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
+		notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
+	}
+	#endif
+
+	
+	// count down
+    if(lid_opened_timeout_secs>1){ 
+      lid_opened_timeout_secs--;
+      AddSerialLog_P(LOG_LEVEL_INFO, PSTR("lid_opened_timeout_secs = %d"),lid_opened_timeout_secs);
+    }else 
+	if(lid_opened_timeout_secs==1){ // at one second left, react by closing or set warning or whatever
+      lid_opened_timeout_secs = 0; // setting to 0 will disable the timer
+	  
+      AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("lid_opened_timeout_secs = %d, TIMEOUT reached"),lid_opened_timeout_secs);
+
+	  box_state = STATE_CLOSING;
+
+	  
+    }
+
+  }
+
+
+}
+
+
+
+// // Read lid position and set output
+// void Tasker_Lid(){
+
+// 	// Read the state, named like this, because a future idea could be a linear distance measurement ie not completely closed or open, but transition state with position
+// 	SubTask_ReadLidState_OpenClosed();
+
+
+// 	switch (box_state){
+// 		case STATE_CLOSED: 
+// 		// if (TimeReached(&tShift, SHIFT_INTERVAL)){
+			
+// 		// 	box_state = STATE_OPENED;
+// 		// }
+// 		break;
+// 		case STATE_OPENED:
+// 		// if (TimeReached(&tShift, SHIFT_INTERVAL)){
+// 		// 	box_state = STATE_LOCKING;
+// 		// }
+// 		break;
+// 		case STATE_LOCKING: 
+// 		// if (TimeReached(&tShift, SHIFT_INTERVAL)){
+// 		// 	box_state = STATE_UNLOCKING;
+// 		// }
+// 		break;
+// 		case STATE_UNLOCKING:
+// 		// if (TimeReached(&tShift, SHIFT_INTERVAL)){
+// 		// 	box_state = STATE_CLOSED;
+// 		// }
+// 		break;
+// 		default:
+// 			Serial.println("You screwed up big time buddy... fix your friggen actuator code!");
+// 		break;
+// 	}
+// }
+
+
+// void Lid_Tasker(){ 
+
+// 	switch (lid_state){
+// 		case LID_CHECK_LOOP:
+// 		break;
+// 		case LID_AJAR:
+// 		//DO SOMETHING HERE TO CHECK IF THE LID WAS LEFT OPEN TOO LONG THEN RESPOND TO IT
+// 		if (lid_switch.isactive==true && TimeReached(&tAjar, LID_AJAR_INTERVAL)){
+// 			//ASSUME THAT I NEED TO RESET tAjar TO MILLIS() HERE
+// 			//BLINK BETWEEN BLUE AND RED RAPIDLY
+// 		}else{
+// 			//not sure if this is needed yet or what to do with it
+// 		}
+// 		break;
+// 		default:
+// 			Serial.println("You screwed up big time buddy... fix your friggen lid code!");
+// 		break;
+		
+// 	}
+// }
 
 // Time elapsed function that updates the time when 
 uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
@@ -146,7 +266,7 @@ uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
 }
 
 /*****************************************************************************************************************************
-* Switch Case Function for Actuator_Tasker 
+* Switch Case Function for Tasker_Lid 
 **************************************************************************************************************************** *
 void ChangeState(int new_state){
 	box_state = new_state;
@@ -298,7 +418,7 @@ License along with VaultController.  If not, see
 /*void loop(){
 
 	//NeoStatus_Tasker(); // called always without delay
-	Actuator_Tasker();
+	Tasker_Lid();
 	
 
 
@@ -320,7 +440,7 @@ License along with VaultController.  If not, see
 
 
 
-void Actuator_Tasker(){
+void Tasker_Lid(){
 	
 	uint8_t package = false;
 
@@ -889,3 +1009,59 @@ void changeStatus(int new_status){
 	
 }
 */
+
+
+
+
+
+// For sending without network during uploads
+void AddSerialLog_P(uint8_t loglevel, PGM_P formatP, ...)
+{
+
+  // Speed/stability improvements, check log level and return early if it doesnt apply to any log events
+  if(loglevel>seriallog_level){
+    return;
+  }
+  
+  // Filtering
+  if(enable_serial_logging_filtering){ // if true, only permit exact log level and not all above
+    if(loglevel == seriallog_level){
+      //permit messages
+    }else{
+      return;
+    }
+  }
+
+  va_list arg;
+  va_start(arg, formatP);
+  vsnprintf_P(log_data, sizeof(log_data), formatP, arg);
+  va_end(arg);
+
+  // LOG : SERIAL
+  if (loglevel <= seriallog_level) {
+    Serial.printf("%s %s\r\n", GetLogLevelNameShortbyID(loglevel),  log_data);
+    //To stop asynchronous serial prints, flush it, but remove this under normal operation so code runs better (sends serial after the fact)
+	// IMPORTANT!!! The code will pause here if flush is set, only for ms until the serial print has been sent
+	// Normally, serial is passed to hardware internal the the chip, and serial is printed in the background. However, if a problem/bug with forced reseting exists,
+	// you want to print all serial BEFORE tripping the reset, so only enable when fault tracing
+	#ifdef ENABLE_SERIAL_DEBUG_FLUSH
+    	Serial.flush();
+	#endif
+  }
+
+}
+
+
+const char* GetLogLevelNameShortbyID(uint8_t id){
+    return (id == LOG_LEVEL_NONE ? PSTR("NON") :
+        (id == LOG_LEVEL_ERROR ?   PSTR("ERR") :
+        (id == LOG_LEVEL_WARN ?   PSTR("WRN") :
+        (id == LOG_LEVEL_TEST ?   PSTR("TST") :
+        (id == LOG_LEVEL_INFO ?    PSTR("INF") :
+        (id == LOG_LEVEL_DEBUG ?   PSTR("DBG") :
+        (id == LOG_LEVEL_DEBUG_MORE ? PSTR("DBM") :
+        (id == LOG_LEVEL_DEBUG_LOWLEVEL ? PSTR("DBL") :
+        (id == LOG_LEVEL_ALL ? PSTR("ALL") :
+        PSTR("unk"))))))))));
+}
+
