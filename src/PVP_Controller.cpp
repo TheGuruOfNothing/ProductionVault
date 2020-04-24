@@ -11,7 +11,7 @@
 void setup() {
 Serial.begin(74480);
 
-//lid_init();
+//lid_init(); not used at the moment, commented out 
 box_init();
 
 }
@@ -47,7 +47,9 @@ void Actuator_Tasker(){
 
 	switch (box_state){
 		case STATE_CLOSED: 
+		STATE_ONE_LED_ON();
 		if (TimeReached(&tShift, SHIFT_INTERVAL)){
+			STATE_ONE_LED_OFF();
 			box_state = STATE_OPENED;
 		}
 		break;
@@ -76,11 +78,6 @@ void Actuator_Subtask(){
 	if(box_state!=old_box_state){ //if the two don't match
     Serial.print("Currently in -"); Serial.println(box_state); //Then print "currently in - X box state" in serial
     old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
-	}
-	if(box_state==STATE_CLOSED){
-		STATE_ONE_LED_ON();
-	}else{
-		STATE_ONE_LED_OFF();
 	}
 
 	if(box_state==STATE_LOCKING){
