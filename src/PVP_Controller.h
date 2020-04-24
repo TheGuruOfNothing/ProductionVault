@@ -1,3 +1,205 @@
+#include <Arduino.h>
+
+
+// BASIC I/O
+#define LID_SWITCH			D1	// Mag switch on lid
+//#define LID_OPEN_LED    	D6  // LED to indicate lid open
+#define STATE_ONE_LED_PIN	D5
+#define STATE_TWO_LED_PIN	D6
+#define STATE_THREE_LED_PIN	D7
+#define STATE_FOUR_LED_PIN	D8
+//#define STATE_FIVE_LED_PIN	D8
+
+/******************************************************************************************************************/
+/* ***************************************************     ALL I/O       ******************************************/
+/******************************************************************************************************************/
+
+#define ON_LOGIC_LEVEL HIGH
+
+//INPUTS*********************************************************************** 
+  #define LID_SWITCH_INIT() 		pinMode(LID_SWITCH, INPUT_PULLUP)
+  #define LID_SWITCH_ONOFF()      	!digitalRead(LID_SWITCH)
+  
+
+//OUTPUTS**********************************************************************
+// "RELAYS" ARE LED'S AT THIS POINT
+#define LID_OPEN_LED_INIT()     	pinMode(LID_OPEN_LED, OUTPUT)
+  //#define LID_LED_ON              digitalWrite(LID_OPEN_LED, !ON_LOGIC_LEVEL)
+  //#define LID_LED_OFF             digitalWrite(LID_OPEN_LED, ON_LOGIC_LEVEL)
+
+//STATE ONE LED INIT
+#define STATE_ONE_LED_INIT()      	pinMode(STATE_ONE_LED_PIN,OUTPUT)
+#define STATE_ONE_LED_START()	 	digitalWrite(STATE_ONE_LED_PIN,ON_LOGIC_LEVEL)
+#define STATE_ONE_LED_ONOFF()     	!digitalRead(STATE_ONE_LED_PIN) //opened when ON_LOGIC_LEVEL
+#define STATE_ONE_LED_ON()       	digitalWrite(STATE_ONE_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+#define STATE_ONE_LED_OFF()      	digitalWrite(STATE_ONE_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+
+//STATE TWO LED INIT
+#define STATE_TWO_LED_INIT()      	pinMode(STATE_TWO_LED_PIN,OUTPUT)
+#define STATE_TWO_LED_START()	 	digitalWrite(STATE_TWO_LED_PIN,ON_LOGIC_LEVEL)
+//#define STATE_TWO_LED_ONOFF()     	!digitalRead(STATE_TWO_LED_PIN) //opened when ON_LOGIC_LEVEL
+#define STATE_TWO_LED_ON()       	digitalWrite(STATE_TWO_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+#define STATE_TWO_LED_OFF()      	digitalWrite(STATE_TWO_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+
+//STATE THREE LED INIT
+#define STATE_THREE_LED_INIT()      	pinMode(STATE_THREE_LED_PIN,OUTPUT)
+#define STATE_THREE_LED_START()	 	digitalWrite(STATE_THREE_LED_PIN,ON_LOGIC_LEVEL)
+//#define STATE_THREE_LED_ONOFF()     	!digitalRead(STATE_THREE_LED_PIN) //opened when ON_LOGIC_LEVEL
+#define STATE_THREE_LED_ON()       	digitalWrite(STATE_THREE_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+#define STATE_THREE_LED_OFF()      	digitalWrite(STATE_THREE_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+
+//STATE FOUR LED INIT
+#define STATE_FOUR_LED_INIT()      	pinMode(STATE_FOUR_LED_PIN,OUTPUT)
+#define STATE_FOUR_LED_START()	 	digitalWrite(STATE_FOUR_LED_PIN,ON_LOGIC_LEVEL)
+//#define STATE_FOUR_LED_ONOFF()     	!digitalRead(STATE_FOUR_LED_PIN) //opened when ON_LOGIC_LEVEL
+#define STATE_FOUR_LED_ON()       	digitalWrite(STATE_FOUR_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+#define STATE_FOUR_LED_OFF()      	digitalWrite(STATE_FOUR_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+
+//STATE FIVE LED INIT
+/*#define STATE_FIVE_LED_INIT()      	pinMode(STATE_FIVE_LED_PIN,OUTPUT)
+#define STATE_FIVE_LED_START()	 	digitalWrite(STATE_FIVE_LED_PIN,ON_LOGIC_LEVEL)
+//#define STATE_FIVE_LED_ONOFF()     	!digitalRead(STATE_FIVE_LED_PIN) //opened when ON_LOGIC_LEVEL
+#define STATE_FIVE_LED_ON()       	digitalWrite(STATE_FIVE_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+#define STATE_FIVE_LED_OFF()      	digitalWrite(STATE_FIVE_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+*/
+
+/*
+//#define ON_LOGIC_LEVEL !ON_LOGIC_LEVEL  //Opened when LOW
+#define RELAY_LOCK_INIT()      	pinMode(RELAY_LOCK_PIN,OUTPUT)
+#define RELAY_LOCK_START()	 	digitalWrite(RELAY_LOCK_PIN,LOW)
+//#define RELAY_LOCK_ONOFF()     	!digitalRead(RELAY_LOCK_PIN) //opened when LOW
+#define RELAY_LOCK_ON()       	digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_LOCK_OFF()      	digitalWrite(RELAY_LOCK_PIN,LOW) //opened when LOW
+
+#define RELAY_UNLOCK_INIT()      	pinMode(RELAY_UNLOCK_PIN,OUTPUT)
+#define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,LOW)
+//#define RELAY_UNLOCK_ONOFF()    !digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
+#define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,LOW) //opened when LOW
+*/
+
+//Switch-case for vault states
+enum STATES_BOX{STATE_CLOSED=0,STATE_OPENED,STATE_LOCKING,STATE_UNLOCKING};
+uint8_t box_state = STATE_CLOSED; // current switch case
+uint8_t old_box_state;
+
+enum STATES_LID{LID_CHECK_LOOP=0, LID_AJAR};
+uint8_t lid_state = LID_CHECK_LOOP; // current switch case
+
+
+
+// Timer Intervals - ALL non-blocking timers CURRENTLY COMMENTED OUT FOR FUTURE USE??????
+#define DEBOUNCE_INTERVAL	200			// Button Debounce
+#define LID_AJAR_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left AJAR
+#define SHIFT_INTERVAL		5000		// TEMP TIMER FOR TESTING
+/*
+#define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
+#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
+#define RESPONSE_INTERVAL	500			// Timed response for debug serial.print
+#define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
+#define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
+*/
+
+
+typedef struct TIMER_HANDLER{
+  uint32_t millis = 0;
+  uint8_t run = false; // run immediately
+}timereached_t;
+
+//Individual Timers
+	timereached_t tUnlock0;
+	timereached_t tLock0;
+	timereached_t tDebounce;
+	timereached_t tAjar;
+	timereached_t tShift;
+	/* - UNUSED ATM - 
+	timereached_t tUnlock1;
+	//timereached_t tLock1;
+	//timereached_t tResponse;
+	//timereached_t tLockdown;
+	//timereached_t tKeycheck;
+	//timereached_t tPircheck;
+	//timereached_t tStatusCheck;
+	//timereached_t tSavedFeedbackDisplay;
+	*/
+
+ typedef struct GPIO_DETECT{
+      uint8_t state = false;
+      uint8_t isactive = false;
+      uint8_t ischanged = false;
+      //struct datetime changedtime;
+      uint32_t tSaved;
+      uint32_t tDetectTimeforDebounce;
+    };
+    GPIO_DETECT lid_switch;
+
+
+//Function prototypes
+uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
+void Actuator_Tasker(void);
+void Actuator_Subtask();
+void Lid_Tasker();
+void ChangeState(int new_state);
+void box_init();
+void lid_init();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+
+
+
+
 
 #include <Arduino.h>
 #include <NeoPixelBus.h>
@@ -202,5 +404,5 @@ void init_Colormap(void);
 void NEO_Feedback_Display(void);
 
 
-
+*/
 

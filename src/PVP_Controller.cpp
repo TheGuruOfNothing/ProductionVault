@@ -1,3 +1,215 @@
+#include <Arduino.h>
+#include "PVP_Controller.h"
+
+
+
+
+
+/* >>>>>>>>>>>>>>>>>>>>>>>>>>     MAIN CODE HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
+//*******************************************************************************************************/
+
+void setup() {
+Serial.begin(74480);
+
+//lid_init();
+box_init();
+
+}
+
+void loop() {
+
+Actuator_Tasker();
+
+}
+
+/* >>>>>>>>>>>>>>>>>>>>>>>>>     FUNCTIONS HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
+//*******************************************************************************************************/
+
+void box_init(){
+	Serial.println("Initializing Box");
+	STATE_ONE_LED_INIT(); STATE_ONE_LED_START();
+	STATE_TWO_LED_INIT(); STATE_TWO_LED_START();
+	STATE_THREE_LED_INIT(); STATE_THREE_LED_START();
+	STATE_FOUR_LED_INIT(); STATE_FOUR_LED_START();
+	//STATE_FIVE_LED_INIT(); STATE_FIVE_LED_START();
+	
+}
+
+void lid_init(){
+	Serial.println("Initializing Lid Swich");
+	LID_SWITCH_INIT();
+}
+
+void Actuator_Tasker(){
+	
+
+	Actuator_Subtask();
+
+	switch (box_state){
+		case STATE_CLOSED: 
+		if (TimeReached(&tShift, SHIFT_INTERVAL)){
+			box_state = STATE_OPENED;
+		}
+		break;
+		case STATE_OPENED:
+		if (TimeReached(&tShift, SHIFT_INTERVAL)){
+			box_state = STATE_LOCKING;
+		}
+		break;
+		case STATE_LOCKING: 
+		if (TimeReached(&tShift, SHIFT_INTERVAL)){
+			box_state = STATE_UNLOCKING;
+		}
+		break;
+		case STATE_UNLOCKING:
+		if (TimeReached(&tShift, SHIFT_INTERVAL)){
+			box_state = STATE_CLOSED;
+		}
+		break;
+		default:
+			Serial.println("You screwed up big time buddy... fix your friggen actuator code!");
+		break;
+	}
+}
+
+void Actuator_Subtask(){
+	if(box_state!=old_box_state){ //if the two don't match
+    Serial.print("Currently in -"); Serial.println(box_state); //Then print "currently in - X box state" in serial
+    old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
+	}
+	if(box_state==STATE_CLOSED){
+		STATE_ONE_LED_ON();
+	}else{
+		STATE_ONE_LED_OFF();
+	}
+
+	if(box_state==STATE_LOCKING){
+		STATE_TWO_LED_ON();
+	}else{
+		STATE_TWO_LED_OFF();
+	}
+
+	if(box_state==STATE_OPENED){
+		STATE_THREE_LED_ON();
+	}else{
+		STATE_THREE_LED_OFF();
+	}
+
+	if(box_state==STATE_UNLOCKING){
+		STATE_FOUR_LED_ON();
+	}else{
+		STATE_FOUR_LED_OFF();
+	}
+}
+
+void Lid_Tasker(){ 
+
+	switch (lid_state){
+		case LID_CHECK_LOOP:
+  			if ((LID_SWITCH_ONOFF()!=lid_switch.state)&&(TimeReached(&tDebounce, DEBOUNCE_INTERVAL)))
+ 			{
+        	lid_switch.state = LID_SWITCH_ONOFF(); //tDetectTime = millis();
+    			if(lid_switch.state)
+				{	Serial.print("Active high lid_switch");
+      				lid_switch.isactive = true;
+      				lid_switch.tDetectTimeforDebounce = millis();
+   			}else{  Serial.print("Active low lid_switch");
+        			lid_switch.isactive = false;
+			}
+    		lid_switch.ischanged = true;
+ 			}
+		break;
+		case LID_AJAR:
+		//DO SOMETHING HERE TO CHECK IF THE LID WAS LEFT OPEN TOO LONG THEN RESPOND TO IT
+		if (lid_switch.isactive==true && TimeReached(&tAjar, LID_AJAR_INTERVAL)){
+			//ASSUME THAT I NEED TO RESET tAjar TO MILLIS() HERE
+			//BLINK BETWEEN BLUE AND RED RAPIDLY
+		}else{
+			//not sure if this is needed yet or what to do with it
+		}
+		break;
+		default:
+			Serial.println("You screwed up big time buddy... fix your friggen lid code!");
+		break;
+		
+	}
+}
+
+// Time elapsed function that updates the time when 
+uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
+  if(
+    (abs(millis()-tSaved->millis)>=ElapsedTime)
+    ||(tSaved->run == true)    
+    ){ 
+      tSaved->millis=millis();
+      tSaved->run = false;
+    return true;
+  }
+  return false;
+}
+
+/*****************************************************************************************************************************
+* Switch Case Function for Actuator_Tasker 
+**************************************************************************************************************************** *
+void ChangeState(int new_state){
+	box_state = new_state;
+	//Serial.println(new_state);
+}
+***************************************************************************************************************************** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* *******The Package Vault Project***********
  I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
  and collaboration in this project. The majority of the code is his and he deserves the credit 
@@ -32,7 +244,7 @@ License along with VaultController.  If not, see
 ------------------------------------------------------------------------------------------------------------ 
 */
 
-#include <Arduino.h>
+/*#include <Arduino.h>
 #include <NeoPixelBus.h>
 #include "PVP_Controller.h"
 
@@ -43,14 +255,14 @@ License along with VaultController.  If not, see
 //#define STABILITY_LEVEL_PRE_RELEASE "pre_release" // under consideration for release (bug checking) >24 stability
 //#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
 
-
+*/
 
 /*****************************************************************************************************************************
  * SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        
  *****************************************************************************************************************************
  */
 
-void setup()
+/*void setup()
 {	
 	Serial.begin(115200);
 
@@ -78,7 +290,7 @@ void setup()
 
 //NO LONGER A STRUCT
 	// memset(&timervals,0,sizeof(timervals)); //Instantiating the timer struct
-}
+}*/
 
 /******************************************************************************************************************************
  * LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      LOOP      
@@ -86,7 +298,7 @@ void setup()
  ******************************************************************************************************************************
  */
 
-void loop(){
+/*void loop(){
 
 	//NeoStatus_Tasker(); // called always without delay
 	Actuator_Tasker();
@@ -356,14 +568,14 @@ void CheckLidState(){
 /*****************************************************************************************************************************
 * FSM Change State Function for ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 **************************************************************************************************************************** */
-void changeState(int new_state){
+/*oid changeState(int new_state){
 	box_state = new_state;
 	//Serial.println(new_state);
-}
+}*/
 /***************************************************************************************************************************** */
 
 
-void init_Colormap(){
+/*void init_Colormap(){
 	Serial.println("VOID Colormap function message");
 	preset_color_map[COLOR_RED_INDEX]      	= HsbColor(Hue360toFloat(0),Sat100toFloat(100),Brt100toFloat(100));
 	preset_color_map[COLOR_PURPLE_INDEX]	= HsbColor(Hue360toFloat(280),Sat100toFloat(100),Brt100toFloat(100));
@@ -618,7 +830,7 @@ void NEO_Feedback_Display(){ //Sets color and pattern of NEO status indicator
 	}
 }
 
-/* EXAMPLE CODE BLOCK THAT COVERS ALL ITERATIONS OF MODE
+ EXAMPLE CODE BLOCK THAT COVERS ALL ITERATIONS OF MODE
 
 notif.pixel[0].period_ms = 4000; // 1 second between "on"s, so half second toggling
 			notif.pixel[0].mode = NOTIF_MODE_ALTERNATE_COLOR_1;
@@ -626,7 +838,7 @@ notif.pixel[0].period_ms = 4000; // 1 second between "on"s, so half second toggl
 			notif.pixel[0].alternate_colors[1] = preset_color_map[COLOR_PURPLE_INDEX];
 			//notif.pixel[0].tRateUpdate ; = SET INTERNALLY, not directly
 			notif.pixel[0].auto_time_off_secs = 10;
-			Serial.println("Blinking pixel 0 green");*/
+			Serial.println("Blinking pixel 0 green");
 
 // Helper functions
 
@@ -679,3 +891,4 @@ void changeStatus(int new_status){
 	//Serial.println(new_status);
 	
 }
+*/
