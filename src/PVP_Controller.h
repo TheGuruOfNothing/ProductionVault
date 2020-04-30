@@ -87,6 +87,7 @@ uint16_t lid_opened_timeout_secs = 0;
 #define LID_AJAR_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left AJAR
 #define SHIFT_INTERVAL		5000		// TEMP TIMER FOR TESTING
 #define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
+#define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
 /*
 #define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
 
@@ -106,14 +107,14 @@ typedef struct TIMER_HANDLER{
 	timereached_t tLock0;
 	timereached_t tDebounce;
 	timereached_t tAjar;
-	timereached_t tShift;
 	timereached_t tSavedTimerLidStateTicker;
+	timereached_t tLockdown;
 	//timereached_t tUnlock1;
 	//timereached_t tLock1;
 	/* - UNUSED ATM - 
 	
 	//timereached_t tResponse;
-	//timereached_t tLockdown;
+	//
 	//timereached_t tKeycheck;
 	//timereached_t tPircheck;
 	//timereached_t tStatusCheck;
@@ -134,6 +135,7 @@ typedef struct TIMER_HANDLER{
 //Function prototypes
 uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime);
 void Tasker_Lid(void);
+void Tasker_Debug_Print();
 void Actuator_Subtask();
 void Lid_Tasker();
 void ChangeState(int new_state);

@@ -60,6 +60,7 @@ void loop() {
 
 	Tasker_Lid();
 	Tasker_Actuator();
+	Tasker_Debug_Print();
 	
 
 }
@@ -154,43 +155,6 @@ void Tasker_Lid(){
 	}
 }
 
-// void Actuator_Subtask(){
-// 	if(box_state!=old_box_state){ //if the two don't match
-//     Serial.print("Currently in -"); Serial.println(box_state); //Then print "currently in - X box state" in serial
-//     old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
-// 	}
-
-void Tasker_Actuator(){
-
-	switch(actuator_state){
-		case LOCKING_BOX:
-		if (TimeReached(&tLock0, RELAY_INTERVAL)){
-			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
-			RELAY_LOCK_OFF();
-			actuator_state = ACTUATOR_IDLE;
-			}
-
-		RELAY_LOCK_ON(); // Starts actuator power for unlock
-		break;
-		case UNLOCKING_BOX:
-		RELAY_UNLOCK_ON(); // Starts actuator power for unlock
-		if (TimeReached(&tLock0, RELAY_INTERVAL)){
-			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
-			RELAY_UNLOCK_OFF();
-			actuator_state = ACTUATOR_IDLE;
-		}
-
-		break;
-		case ACTUATOR_IDLE:
-		AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Actuator returned to idle state"));
-		// ACTUATORS ARE POWERED OFF SO NOTHING GOES IN HERE
-		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
-		break;
-		default:
-		AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("Something went wrong in TASKER_ACTUATOR, FIX IT!"));
-		break;
-	}
-}
 
 void SubTask_ReadLidState_OpenClosed(){
 
@@ -247,6 +211,125 @@ void SubTask_TimerLidState(){
 
 
 }
+
+void Tasker_Actuator(){
+
+	switch(actuator_state){
+		case LOCKING_BOX:
+		if (TimeReached(&tLock0, RELAY_INTERVAL)){
+			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
+			RELAY_LOCK_OFF();
+			actuator_state = ACTUATOR_IDLE;
+			}
+
+		RELAY_LOCK_ON(); // Starts actuator power for unlock
+		break;
+		case UNLOCKING_BOX:
+		RELAY_UNLOCK_ON(); // Starts actuator power for unlock
+		if (TimeReached(&tLock0, RELAY_INTERVAL)){
+			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
+			RELAY_UNLOCK_OFF();
+			actuator_state = ACTUATOR_IDLE;
+		}
+
+		break;
+		case ACTUATOR_IDLE:
+		//AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Actuator returned to idle state"));
+		// ACTUATORS ARE POWERED OFF SO NOTHING GOES IN HERE
+		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
+		break;
+		default:
+		AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("Something went wrong in TASKER_ACTUATOR, FIX IT!"));
+		break;
+	}
+}
+
+
+
+// Time elapsed function that updates the time when 
+uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
+  if(
+    (abs(millis()-tSaved->millis)>=ElapsedTime)
+    ||(tSaved->run == true)    
+    ){ 
+      tSaved->millis=millis();
+      tSaved->run = false;
+    return true;
+  }
+  return false;
+}
+
+//*****************************************************************************************************************************
+//* Applicable DEBUG and LOGGING code
+//**************************************************************************************************************************** *
+ //Printing current states for switch case and other items
+ void Tasker_Debug_Print(){
+ 	
+	 if(box_state!=old_box_state){ //if the two don't match
+     Serial.print("Currently in -"); Serial.println(box_state); //Then print "currently in - X box state" in serial
+	 AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Box case changed to"),box_state);
+     old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
+ 	}
+
+
+ }
+
+ // For sending without network during uploads
+void AddSerialLog_P(uint8_t loglevel, PGM_P formatP, ...)
+{
+
+  // Speed/stability improvements, check log level and return early if it doesnt apply to any log events
+  if(loglevel>seriallog_level){
+    return;
+  }
+  
+  // Filtering
+  if(enable_serial_logging_filtering){ // if true, only permit exact log level and not all above
+    if(loglevel == seriallog_level){
+      //permit messages
+    }else{
+      return;
+    }
+  }
+
+  va_list arg;
+  va_start(arg, formatP);
+  vsnprintf_P(log_data, sizeof(log_data), formatP, arg);
+  va_end(arg);
+
+  // LOG : SERIAL
+  if (loglevel <= seriallog_level) {
+    Serial.printf("%s %s\r\n", GetLogLevelNameShortbyID(loglevel),  log_data);
+    //To stop asynchronous serial prints, flush it, but remove this under normal operation so code runs better (sends serial after the fact)
+	// IMPORTANT!!! The code will pause here if flush is set, only for ms until the serial print has been sent
+	// Normally, serial is passed to hardware internal the the chip, and serial is printed in the background. However, if a problem/bug with forced reseting exists,
+	// you want to print all serial BEFORE tripping the reset, so only enable when fault tracing
+	#ifdef ENABLE_SERIAL_DEBUG_FLUSH
+    	Serial.flush();
+	#endif
+  }
+
+}
+
+
+const char* GetLogLevelNameShortbyID(uint8_t id){
+    return (id == LOG_LEVEL_NONE ? PSTR("NON") :
+        (id == LOG_LEVEL_ERROR ?   PSTR("ERR") :
+        (id == LOG_LEVEL_WARN ?   PSTR("WRN") :
+        (id == LOG_LEVEL_TEST ?   PSTR("TST") :
+        (id == LOG_LEVEL_INFO ?    PSTR("INF") :
+        (id == LOG_LEVEL_DEBUG ?   PSTR("DBG") :
+        (id == LOG_LEVEL_DEBUG_MORE ? PSTR("DBM") :
+        (id == LOG_LEVEL_DEBUG_LOWLEVEL ? PSTR("DBL") :
+        (id == LOG_LEVEL_ALL ? PSTR("ALL") :
+        PSTR("unk"))))))))));
+}
+
+
+//***************************************************************************************************************************** *
+
+
+
 
 
 
@@ -307,27 +390,6 @@ void SubTask_TimerLidState(){
 // 	}
 // }
 
-// Time elapsed function that updates the time when 
-uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
-  if(
-    (abs(millis()-tSaved->millis)>=ElapsedTime)
-    ||(tSaved->run == true)    
-    ){ 
-      tSaved->millis=millis();
-      tSaved->run = false;
-    return true;
-  }
-  return false;
-}
-
-/*****************************************************************************************************************************
-* Switch Case Function for Tasker_Lid 
-**************************************************************************************************************************** *
-void ChangeState(int new_state){
-	box_state = new_state;
-	//Serial.println(new_state);
-}
-***************************************************************************************************************************** */
 
 
 
@@ -971,55 +1033,4 @@ void changeStatus(int new_status){
 
 
 
-
-// For sending without network during uploads
-void AddSerialLog_P(uint8_t loglevel, PGM_P formatP, ...)
-{
-
-  // Speed/stability improvements, check log level and return early if it doesnt apply to any log events
-  if(loglevel>seriallog_level){
-    return;
-  }
-  
-  // Filtering
-  if(enable_serial_logging_filtering){ // if true, only permit exact log level and not all above
-    if(loglevel == seriallog_level){
-      //permit messages
-    }else{
-      return;
-    }
-  }
-
-  va_list arg;
-  va_start(arg, formatP);
-  vsnprintf_P(log_data, sizeof(log_data), formatP, arg);
-  va_end(arg);
-
-  // LOG : SERIAL
-  if (loglevel <= seriallog_level) {
-    Serial.printf("%s %s\r\n", GetLogLevelNameShortbyID(loglevel),  log_data);
-    //To stop asynchronous serial prints, flush it, but remove this under normal operation so code runs better (sends serial after the fact)
-	// IMPORTANT!!! The code will pause here if flush is set, only for ms until the serial print has been sent
-	// Normally, serial is passed to hardware internal the the chip, and serial is printed in the background. However, if a problem/bug with forced reseting exists,
-	// you want to print all serial BEFORE tripping the reset, so only enable when fault tracing
-	#ifdef ENABLE_SERIAL_DEBUG_FLUSH
-    	Serial.flush();
-	#endif
-  }
-
-}
-
-
-const char* GetLogLevelNameShortbyID(uint8_t id){
-    return (id == LOG_LEVEL_NONE ? PSTR("NON") :
-        (id == LOG_LEVEL_ERROR ?   PSTR("ERR") :
-        (id == LOG_LEVEL_WARN ?   PSTR("WRN") :
-        (id == LOG_LEVEL_TEST ?   PSTR("TST") :
-        (id == LOG_LEVEL_INFO ?    PSTR("INF") :
-        (id == LOG_LEVEL_DEBUG ?   PSTR("DBG") :
-        (id == LOG_LEVEL_DEBUG_MORE ? PSTR("DBM") :
-        (id == LOG_LEVEL_DEBUG_LOWLEVEL ? PSTR("DBL") :
-        (id == LOG_LEVEL_ALL ? PSTR("ALL") :
-        PSTR("unk"))))))))));
-}
 
