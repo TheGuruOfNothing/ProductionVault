@@ -1,15 +1,57 @@
+ /********The Package Vault Project***********
+ I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
+ and collaboration in this project. The majority of the code is his and he deserves the credit 
+ for all his patience invested as well, as I am not the easiest dog to teach new tricks to. 
+
+ Additional credit is owed to @Chris Aitken for his efforts also. The original core code was 
+ his. I have used that as the foundation to the project and though it is now only a small piece
+ of the large puzzle, it is what took the vault from a passing whimsy to a functional device. LOTS of
+ upgrades have been built onto that code.
+
+ The Package Vault Project was started as a personal project to try and stop package thieves
+ from taking my packages. After falling victim, I decided enough was enough. This device
+ was born. It's popularity amongst the neighbors and local community has made it take on a life of it's own.
+ It is my hope that you will take the code that has been created and figure out how to integrate it
+ into something new and cool that has the same goal - to thwart package thieves. 
+
+You can get more information on this project BY EMAILING packagevaultproject@yahoo.com
+-------------------------------------------------------------------------------------------------------------
+VaultController is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+VaultController is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with VaultController.  If not, see
+<http://www.gnu.org/licenses/>.
+------------------------------------------------------------------------------------------------------------ 
+*/
+
 #include <Arduino.h>
 #include "PVP_Controller.h"
+//#include <NeoPixelBus.h>
+
+#define BUILD_NUMBER_CTR "v0_53"
+
+// Levels of stability (from testing to functional)
+#define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
+//#define STABILITY_LEVEL_PRE_RELEASE "pre_release" // under consideration for release (bug checking) >24 stability
+//#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
 
 
 
-/* >>>>>>>>>>>>>>>>>>>>>>>>>>     MAIN CODE HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
+/* >>>>>>>>>>>>>>>>>>>>>>>>>>     MAIN PROGRAM HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
 //*******************************************************************************************************/
 
-void setup() {
+void setup() { 
 Serial.begin(74480);
 
-	//lid_init(); not used at the moment, commented out 
+	lid_init();
 	box_init();
 
 }
@@ -17,6 +59,8 @@ Serial.begin(74480);
 void loop() {
 
 	Tasker_Lid();
+	Tasker_Actuator();
+	
 
 }
 
@@ -35,7 +79,7 @@ void box_init(){
 
 	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %d"),2);    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
 	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %c"),'2');    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
-	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %s %s $d"),"or like", "this", 3);    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
+	AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Initializing Box version %s %s %d"),"or like", "this", 3);    //PSTR saves the string in progmem, since it doesnt change, good save spacing, get into this habit
 
 	// If you look at my function, the "..." means it accepts AS MANY extra terms as you want eg "or like", "this", comma with each
 
@@ -51,12 +95,10 @@ void box_init(){
 	 * %d = number (but not float)
 	 * */
 
+	RELAY_LOCK_INIT(); RELAY_LOCK_START(); //STARTS RELAY AND SETS LOW TO MAKE SURE IT'S OFF
+	RELAY_UNLOCK_INIT(); RELAY_UNLOCK_START(); //STARTS RELAY AND SETS LOW TO MAKE SURE IT'S OFF
 
-	STATE_ONE_LED_INIT(); STATE_ONE_LED_START();
-	STATE_TWO_LED_INIT(); STATE_TWO_LED_START();
-	STATE_THREE_LED_INIT(); STATE_THREE_LED_START();
-	STATE_FOUR_LED_INIT(); STATE_FOUR_LED_START();
-	//STATE_FIVE_LED_INIT(); STATE_FIVE_LED_START();
+	LID_STATUS_LED_INIT(); LID_STATUS_LED_START(); //INITIALIZES LID OPEN STATUS LED, USED FOR DEBUG ON PROTO BOARD ONLY
 	
 }
 
@@ -107,7 +149,7 @@ void Tasker_Lid(){
 			
 		break;
 		default:
-			Serial.println("You screwed up big time buddy... fix your friggen actuator code!");
+			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("Something went wrong in TASKER_LID, FIX IT!"));
 		break;
 	}
 }
@@ -118,24 +160,37 @@ void Tasker_Lid(){
 //     old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
 // 	}
 
-// 	if(box_state==STATE_LOCKING){
-// 		STATE_TWO_LED_ON();
-// 	}else{
-// 		STATE_TWO_LED_OFF();
-// 	}
+void Tasker_Actuator(){
 
-// 	if(box_state==STATE_OPENED){
-// 		STATE_THREE_LED_ON();
-// 	}else{
-// 		STATE_THREE_LED_OFF();
-// 	}
+	switch(actuator_state){
+		case LOCKING_BOX:
+		AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Starting LOCK process"));
+		RELAY_LOCK_ON(); // Starts actuator power for unlock
+		if (TimeReached(&tLock0, RELAY_INTERVAL)){
+			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
+			RELAY_LOCK_OFF();
+			actuator_state = ACTUATOR_IDLE;
+			}
+		break;
+		case UNLOCKING_BOX:
+		AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Starting UNLOCK process"));
+		RELAY_UNLOCK_ON(); // Starts actuator power for unlock
+		if (TimeReached(&tLock0, RELAY_INTERVAL)){
+			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
+			RELAY_UNLOCK_OFF();
+			actuator_state = ACTUATOR_IDLE;
+		}
 
-// 	if(box_state==STATE_UNLOCKING){
-// 		STATE_FOUR_LED_ON();
-// 	}else{
-// 		STATE_FOUR_LED_OFF();
-// 	}
-// }
+		break;
+		case ACTUATOR_IDLE:
+		// ACTUATORS ARE POWERED OFF SO NOTHING GOES IN HERE
+		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
+		break;
+		default:
+		AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("Something went wrong in TASKER_ACTUATOR, FIX IT!"));
+		break;
+	}
+}
 
 void SubTask_ReadLidState_OpenClosed(){
 
@@ -276,103 +331,6 @@ void ChangeState(int new_state){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* *******The Package Vault Project***********
- I'd like to give a giant thank you to @Sparkplug23 for all his gracious and ongoing assistance
- and collaboration in this project. The majority of the code is his and he deserves the credit 
- for all his patience invested as well, as I am not the easiest dog to teach new tricks to. 
-
- Additional credit is owed to @Chris Aitken for his efforts also. The original core code was 
- his. I have used that as the foundation to the project and though it is now only a small piece
- of the large puzzle, it is what took the vault from a passing whimsy to a functional device. LOTS of
- upgrades have been built onto that code.
-
- The Package Vault Project was started as a personal project to try and stop package thieves
- from taking my packages. After falling victim, I decided enough was enough. This device
- was born. It's popularity amongst the neighbors and local community has made it take on a life of it's own.
- It is my hope that you will take the code that has been created and figure out how to integrate it
- into something new and cool that has the same goal - to thwart package thieves. 
-
-You can get more information on this project or on this code at www.packagevaultproject.org
--------------------------------------------------------------------------------------------------------------
-VaultController is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as
-published by the Free Software Foundation, either version 3 of
-the License, or (at your option) any later version.
-
-VaultController is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with VaultController.  If not, see
-<http://www.gnu.org/licenses/>.
------------------------------------------------------------------------------------------------------------- 
-*/
-
-/*#include <Arduino.h>
-#include <NeoPixelBus.h>
-#include "PVP_Controller.h"
-
-#define BUILD_NUMBER_CTR "v0_53"
-
-// Levels of stability (from testing to functional)
-#define STABILITY_LEVEL_NIGHTLY     "nightly"     // testing (new code -- bugs) <24 hour stability
-//#define STABILITY_LEVEL_PRE_RELEASE "pre_release" // under consideration for release (bug checking) >24 stability
-//#define STABILITY_LEVEL_RELEASE     "release"     // long term >7 days
-
-*/
 
 /*****************************************************************************************************************************
  * SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        SETUP        

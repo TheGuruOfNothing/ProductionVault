@@ -3,18 +3,16 @@
 
 // BASIC I/O
 #define LID_SWITCH			D1	// Mag switch on lid
-//#define LID_OPEN_LED    	D6  // LED to indicate lid open
-#define STATE_ONE_LED_PIN	D5
-#define STATE_TWO_LED_PIN	D6
-#define STATE_THREE_LED_PIN	D7
-#define STATE_FOUR_LED_PIN	D8
-//#define STATE_FIVE_LED_PIN	D8
+#define RELAY_UNLOCK_PIN	D5
+#define RELAY_LOCK_PIN		D6
+#define LID_OPEN_LED_PIN	D7
+//#define STATE_FOUR_LED_PIN	D8
 
 /******************************************************************************************************************/
 /* ***************************************************     ALL I/O       ******************************************/
 /******************************************************************************************************************/
 
-#define ON_LOGIC_LEVEL HIGH
+
 
 //INPUTS*********************************************************************** 
   #define LID_SWITCH_INIT() 		pinMode(LID_SWITCH, INPUT_PULLUP)
@@ -22,61 +20,28 @@
   
 
 //OUTPUTS**********************************************************************
-// "RELAYS" ARE LED'S AT THIS POINT
-#define LID_OPEN_LED_INIT()     	pinMode(LID_OPEN_LED, OUTPUT)
-  //#define LID_LED_ON              digitalWrite(LID_OPEN_LED, !ON_LOGIC_LEVEL)
-  //#define LID_LED_OFF             digitalWrite(LID_OPEN_LED, ON_LOGIC_LEVEL)
+#define ON_LOGIC_LEVEL LOW  
 
-//STATE ONE LED INIT
-#define STATE_ONE_LED_INIT()      	pinMode(STATE_ONE_LED_PIN,OUTPUT)
-#define STATE_ONE_LED_START()	 	digitalWrite(STATE_ONE_LED_PIN,ON_LOGIC_LEVEL)
-#define STATE_ONE_LED_ONOFF()     	!digitalRead(STATE_ONE_LED_PIN) //opened when ON_LOGIC_LEVEL
-#define STATE_ONE_LED_ON()       	digitalWrite(STATE_ONE_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-#define STATE_ONE_LED_OFF()      	digitalWrite(STATE_ONE_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+#define LID_STATUS_LED_INIT()     		pinMode(LID_OPEN_LED_PIN, OUTPUT)
+#define LID_STATUS_LED_START()			digitalWrite(LID_OPEN_LED_PIN,LOW)
+#define LID_STATUS_LED_ON()              digitalWrite(LID_OPEN_LED_PIN, !ON_LOGIC_LEVEL)
+#define LID_STATUS_LED_OFF()              digitalWrite(LID_OPEN_LED_PIN, ON_LOGIC_LEVEL)
 
-//STATE TWO LED INIT
-#define STATE_TWO_LED_INIT()      	pinMode(STATE_TWO_LED_PIN,OUTPUT)
-#define STATE_TWO_LED_START()	 	digitalWrite(STATE_TWO_LED_PIN,ON_LOGIC_LEVEL)
-//#define STATE_TWO_LED_ONOFF()     	!digitalRead(STATE_TWO_LED_PIN) //opened when ON_LOGIC_LEVEL
-#define STATE_TWO_LED_ON()       	digitalWrite(STATE_TWO_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-#define STATE_TWO_LED_OFF()      	digitalWrite(STATE_TWO_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
+//SETUP FOR RELAYS
 
-//STATE THREE LED INIT
-#define STATE_THREE_LED_INIT()      	pinMode(STATE_THREE_LED_PIN,OUTPUT)
-#define STATE_THREE_LED_START()	 	digitalWrite(STATE_THREE_LED_PIN,ON_LOGIC_LEVEL)
-//#define STATE_THREE_LED_ONOFF()     	!digitalRead(STATE_THREE_LED_PIN) //opened when ON_LOGIC_LEVEL
-#define STATE_THREE_LED_ON()       	digitalWrite(STATE_THREE_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-#define STATE_THREE_LED_OFF()      	digitalWrite(STATE_THREE_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
 
-//STATE FOUR LED INIT
-#define STATE_FOUR_LED_INIT()      	pinMode(STATE_FOUR_LED_PIN,OUTPUT)
-#define STATE_FOUR_LED_START()	 	digitalWrite(STATE_FOUR_LED_PIN,ON_LOGIC_LEVEL)
-//#define STATE_FOUR_LED_ONOFF()     	!digitalRead(STATE_FOUR_LED_PIN) //opened when ON_LOGIC_LEVEL
-#define STATE_FOUR_LED_ON()       	digitalWrite(STATE_FOUR_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-#define STATE_FOUR_LED_OFF()      	digitalWrite(STATE_FOUR_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-
-//STATE FIVE LED INIT
-/*#define STATE_FIVE_LED_INIT()      	pinMode(STATE_FIVE_LED_PIN,OUTPUT)
-#define STATE_FIVE_LED_START()	 	digitalWrite(STATE_FIVE_LED_PIN,ON_LOGIC_LEVEL)
-//#define STATE_FIVE_LED_ONOFF()     	!digitalRead(STATE_FIVE_LED_PIN) //opened when ON_LOGIC_LEVEL
-#define STATE_FIVE_LED_ON()       	digitalWrite(STATE_FIVE_LED_PIN,!ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-#define STATE_FIVE_LED_OFF()      	digitalWrite(STATE_FIVE_LED_PIN,ON_LOGIC_LEVEL) //opened when ON_LOGIC_LEVEL
-*/
-
-/*
-//#define ON_LOGIC_LEVEL !ON_LOGIC_LEVEL  //Opened when LOW
-#define RELAY_LOCK_INIT()      	pinMode(RELAY_LOCK_PIN,OUTPUT)
-#define RELAY_LOCK_START()	 	digitalWrite(RELAY_LOCK_PIN,LOW)
-//#define RELAY_LOCK_ONOFF()     	!digitalRead(RELAY_LOCK_PIN) //opened when LOW
-#define RELAY_LOCK_ON()       	digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
-#define RELAY_LOCK_OFF()      	digitalWrite(RELAY_LOCK_PIN,LOW) //opened when LOW
+#define RELAY_LOCK_INIT()      		pinMode(RELAY_LOCK_PIN,OUTPUT)
+#define RELAY_LOCK_START()	 		digitalWrite(RELAY_LOCK_PIN,LOW)
+#define RELAY_LOCK_ONOFF()     		!digitalRead(RELAY_LOCK_PIN) //opened when LOW
+#define RELAY_LOCK_ON()       		digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
+#define RELAY_LOCK_OFF()      		digitalWrite(RELAY_LOCK_PIN,LOW) //opened when LOW
 
 #define RELAY_UNLOCK_INIT()      	pinMode(RELAY_UNLOCK_PIN,OUTPUT)
 #define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,LOW)
-//#define RELAY_UNLOCK_ONOFF()    !digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
+#define RELAY_UNLOCK_ONOFF()    	!digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
 #define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
 #define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,LOW) //opened when LOW
-*/
+
 
 //Switch-case for vault states
 enum STATES_BOX{STATE_UNKNOWN=0,STATE_CLOSED,STATE_OPENING,STATE_OPENED,STATE_CLOSING};
@@ -98,6 +63,10 @@ enum LoggingLevels {LOG_LEVEL_NONE,
                     LOG_LEVEL_DEBUG_LOWLEVEL, 
                     LOG_LEVEL_ALL};
 
+void Tasker_Actuator();
+enum ACTUATOR_CONTROL{ACTUATOR_IDLE = 0,LOCKING_BOX,UNLOCKING_BOX};
+uint8_t actuator_state = ACTUATOR_IDLE; // RESTING 
+
 
 // For sending without network during uploads
 void AddSerialLog_P(uint8_t loglevel, PGM_P formatP, ...);
@@ -117,9 +86,10 @@ uint16_t lid_opened_timeout_secs = 0;
 #define DEBOUNCE_INTERVAL	200			// Button Debounce
 #define LID_AJAR_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left AJAR
 #define SHIFT_INTERVAL		5000		// TEMP TIMER FOR TESTING
+#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
 /*
 #define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
-#define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
+
 #define RESPONSE_INTERVAL	500			// Timed response for debug serial.print
 #define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
 #define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
@@ -138,9 +108,10 @@ typedef struct TIMER_HANDLER{
 	timereached_t tAjar;
 	timereached_t tShift;
 	timereached_t tSavedTimerLidStateTicker;
-	/* - UNUSED ATM - 
-	timereached_t tUnlock1;
+	//timereached_t tUnlock1;
 	//timereached_t tLock1;
+	/* - UNUSED ATM - 
+	
 	//timereached_t tResponse;
 	//timereached_t tLockdown;
 	//timereached_t tKeycheck;
