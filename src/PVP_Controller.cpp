@@ -103,7 +103,7 @@ void box_init(){
 }
 
 void lid_init(){
-	Serial.println("Initializing Lid Swich");
+	AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Lid switch initialized"));
 	LID_SWITCH_INIT();
 }
 
@@ -164,16 +164,15 @@ void Tasker_Actuator(){
 
 	switch(actuator_state){
 		case LOCKING_BOX:
-		AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Starting LOCK process"));
-		RELAY_LOCK_ON(); // Starts actuator power for unlock
 		if (TimeReached(&tLock0, RELAY_INTERVAL)){
 			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
 			RELAY_LOCK_OFF();
 			actuator_state = ACTUATOR_IDLE;
 			}
+
+		RELAY_LOCK_ON(); // Starts actuator power for unlock
 		break;
 		case UNLOCKING_BOX:
-		AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Starting UNLOCK process"));
 		RELAY_UNLOCK_ON(); // Starts actuator power for unlock
 		if (TimeReached(&tLock0, RELAY_INTERVAL)){
 			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
@@ -183,6 +182,7 @@ void Tasker_Actuator(){
 
 		break;
 		case ACTUATOR_IDLE:
+		AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Actuator returned to idle state"));
 		// ACTUATORS ARE POWERED OFF SO NOTHING GOES IN HERE
 		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
 		break;

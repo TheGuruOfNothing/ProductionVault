@@ -20,10 +20,10 @@
   
 
 //OUTPUTS**********************************************************************
-#define ON_LOGIC_LEVEL LOW  
+#define ON_LOGIC_LEVEL HIGH  
 
 #define LID_STATUS_LED_INIT()     		pinMode(LID_OPEN_LED_PIN, OUTPUT)
-#define LID_STATUS_LED_START()			digitalWrite(LID_OPEN_LED_PIN,LOW)
+#define LID_STATUS_LED_START()			digitalWrite(LID_OPEN_LED_PIN,HIGH)
 #define LID_STATUS_LED_ON()              digitalWrite(LID_OPEN_LED_PIN, !ON_LOGIC_LEVEL)
 #define LID_STATUS_LED_OFF()              digitalWrite(LID_OPEN_LED_PIN, ON_LOGIC_LEVEL)
 
@@ -31,13 +31,13 @@
 
 
 #define RELAY_LOCK_INIT()      		pinMode(RELAY_LOCK_PIN,OUTPUT)
-#define RELAY_LOCK_START()	 		digitalWrite(RELAY_LOCK_PIN,LOW)
+#define RELAY_LOCK_START()	 		digitalWrite(RELAY_LOCK_PIN,HIGH)
 #define RELAY_LOCK_ONOFF()     		!digitalRead(RELAY_LOCK_PIN) //opened when LOW
 #define RELAY_LOCK_ON()       		digitalWrite(RELAY_LOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
 #define RELAY_LOCK_OFF()      		digitalWrite(RELAY_LOCK_PIN,LOW) //opened when LOW
 
 #define RELAY_UNLOCK_INIT()      	pinMode(RELAY_UNLOCK_PIN,OUTPUT)
-#define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,LOW)
+#define RELAY_UNLOCK_START()	   	digitalWrite(RELAY_LOCK_PIN,HIGH)
 #define RELAY_UNLOCK_ONOFF()    	!digitalRead(RELAY_UNLOCK_PIN) //opened when LOW
 #define RELAY_UNLOCK_ON()        	digitalWrite(RELAY_UNLOCK_PIN,!ON_LOGIC_LEVEL) //opened when LOW
 #define RELAY_UNLOCK_OFF()       	digitalWrite(RELAY_UNLOCK_PIN,LOW) //opened when LOW
