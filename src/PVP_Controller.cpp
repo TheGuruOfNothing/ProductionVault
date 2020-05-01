@@ -115,14 +115,26 @@ void Tasker_Lid(){
 	// Read the state, named like this, because a future idea could be a linear distance measurement ie not completely closed or open, but transition state with position
 	SubTask_ReadLidState_OpenClosed();
 	SubTask_TimerLidState(); // Add timers that tick down regardless of state for security reasons
-	uint8_t package_present = false;
+	uint8_t fPackagePresent = false;
+	lid_opened_timeout_secs = 0; // disable/reset
 
 	switch (box_state){
 		case STATE_CLOSED: 
-			lid_opened_timeout_secs = 0; // disable/reset
-		if (package_present == true)&&(lockState == false)
-				//Switch to timeer for lockdown then lock the box
+		// Default entry to this state is with package flag false (empty vault), closed lid and unlocked. That will change as flags are tripped during operation 
+			
+		if ((fPackagePresent == true) && (fLockState == false)){ //Check for package flag change and confirm lid has not been locked already
+			//(*)(*)*************blinky lightzen  for lockdown timer goes here...***************(*)(*)
+			if (TimeReached(&tLockdown,LOCKDOWN_INTERVAL)){
+				actuator_state = LOCKING_BOX;
+				box_state = STATE_SECURED;
+			}
+		else if ((fPackagePresent == true) && (fLockState == true)){
+				box_state = STATE_UNKNOWN;
+			}
+
 		
+		}else{
+			//vault is empty at this point, blink green NEOLED for ready to receive amd wait for package to arrive
 		}
 	
 		break;
@@ -134,7 +146,7 @@ void Tasker_Lid(){
 			
 		break;
 		case STATE_SECURED:
-		
+
 		case STATE_OPENING:
 
 			// example, set open time to max of 60 seconds .... you could add a button/motion detector inside the box that reset this again 
@@ -147,7 +159,8 @@ void Tasker_Lid(){
 
 		
 		break;
-		case STATE_UNKNOWN: // auto close if we don't know, you can set this as a "timeout" option.. note, not "break" so this automatically runs into closing
+		case STATE_UNKNOWN: 
+			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("We have some flags that haven't been changed properly and we are lost in the weeds..."));
 		case STATE_CLOSING: 
 
 			lid_opened_timeout_secs = 0; // disable/reset
@@ -221,11 +234,16 @@ void SubTask_TimerLidState(){
 void Tasker_Actuator(){
 		
 	switch(actuator_state){
+		case ACTUATOR_IDLE:
+		//AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Actuator returned to idle state"));
+		// ACTUATORS ARE POWERED OFF SO NOTHING GOES IN HERE
+		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
+		break;
 		case LOCKING_BOX:
 		if (TimeReached(&tLock0, RELAY_INTERVAL)){
-			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
 			RELAY_LOCK_OFF();
-			lockState = true;
+			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
+			fLockState = true;
 			actuator_state = ACTUATOR_IDLE;
 			}
 
@@ -234,20 +252,17 @@ void Tasker_Actuator(){
 		case UNLOCKING_BOX:
 		RELAY_UNLOCK_ON(); // Starts actuator power for unlock
 		if (TimeReached(&tLock0, RELAY_INTERVAL)){
-			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
 			RELAY_UNLOCK_OFF();
+			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
+			fLockState = false;
 			actuator_state = ACTUATOR_IDLE;
 		}
 
 		break;
-		case ACTUATOR_IDLE:
-		//AddSerialLog_P(LOG_LEVEL_INFO, PSTR("Actuator returned to idle state"));
-		// ACTUATORS ARE POWERED OFF SO NOTHING GOES IN HERE
-		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
-		break;
 		default:
 		AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("Something went wrong in TASKER_ACTUATOR, FIX IT!"));
 		break;
+		
 	}
 }
 

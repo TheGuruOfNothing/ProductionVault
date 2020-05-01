@@ -44,13 +44,13 @@
 
 
 //Switch-case for vault states
-enum STATES_BOX{STATE_UNKNOWN=0,STATE_CLOSED,STATE_OPENING,STATE_OPENED,STATE_CLOSING};
+enum STATES_BOX{STATE_CLOSED=0,STATE_OPENED,STATE_SECURED,STATE_OPENING,STATE_UNKNOWN,STATE_CLOSING};
 uint8_t box_state = STATE_UNKNOWN; // current switch case
 uint8_t old_box_state;
 
 enum STATES_LID{LID_CHECK_LOOP=0, LID_AJAR};
 uint8_t lid_state = LID_CHECK_LOOP; // current switch case
-uint8_t lockState = false;
+uint8_t fLockState = false;
 
 
 
