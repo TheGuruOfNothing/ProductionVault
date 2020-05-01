@@ -50,6 +50,7 @@ uint8_t old_box_state;
 
 enum STATES_LID{LID_CHECK_LOOP=0, LID_AJAR};
 uint8_t lid_state = LID_CHECK_LOOP; // current switch case
+uint8_t lockState = false;
 
 
 

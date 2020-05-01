@@ -115,15 +115,26 @@ void Tasker_Lid(){
 	// Read the state, named like this, because a future idea could be a linear distance measurement ie not completely closed or open, but transition state with position
 	SubTask_ReadLidState_OpenClosed();
 	SubTask_TimerLidState(); // Add timers that tick down regardless of state for security reasons
-
+	uint8_t package_present = false;
 
 	switch (box_state){
 		case STATE_CLOSED: 
-			// if(unlocked)
-				// lock it
-			// if (locked)
-				// perhaps flash neoled every 10 seconds to show its locked
+			lid_opened_timeout_secs = 0; // disable/reset
+		if (package_present == true)&&(lockState == false)
+				//Switch to timeer for lockdown then lock the box
+		
+		}
+	
 		break;
+		case STATE_OPENED:
+			lid_opened_timeout_secs = 60;
+
+
+
+			
+		break;
+		case STATE_SECURED:
+		
 		case STATE_OPENING:
 
 			// example, set open time to max of 60 seconds .... you could add a button/motion detector inside the box that reset this again 
@@ -143,12 +154,7 @@ void Tasker_Lid(){
 		
 		
 		break;
-		case STATE_OPENED:
-
-
-
-			
-		break;
+		
 		default:
 			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("Something went wrong in TASKER_LID, FIX IT!"));
 		break;
@@ -213,12 +219,13 @@ void SubTask_TimerLidState(){
 }
 
 void Tasker_Actuator(){
-
+		
 	switch(actuator_state){
 		case LOCKING_BOX:
 		if (TimeReached(&tLock0, RELAY_INTERVAL)){
 			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
 			RELAY_LOCK_OFF();
+			lockState = true;
 			actuator_state = ACTUATOR_IDLE;
 			}
 
