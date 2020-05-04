@@ -80,12 +80,13 @@ const char* GetLogLevelNameShortbyID(uint8_t loglevel);
 
 void SubTask_TimerLidState();
 void SubTask_ReadLidState_OpenClosed();
-uint16_t lid_opened_timeout_secs = 0; 
+uint8_t lid_opened_timeout_secs = 0;
+ 
 
 
 // Timer Intervals - ALL non-blocking timers CURRENTLY COMMENTED OUT FOR FUTURE USE??????
 #define DEBOUNCE_INTERVAL	200			// Button Debounce
-#define LID_AJAR_INTERVAL	120000		// Lid ajar timer interval, sends ajar message if lid is left AJAR
+#define LID_AJAR_INTERVAL	60000		// Lid ajar timer interval, sends ajar message if lid is left AJAR
 #define SHIFT_INTERVAL		5000		// TEMP TIMER FOR TESTING
 #define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
 #define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds

@@ -116,37 +116,32 @@ void Tasker_Lid(){
 	SubTask_ReadLidState_OpenClosed();
 	SubTask_TimerLidState(); // Add timers that tick down regardless of state for security reasons
 	uint8_t fPackagePresent = false;
-	lid_opened_timeout_secs = 0; // disable/reset
+	uint8_t fLastPackagePresentState = false;
+	
 
 	switch (box_state){
 		case STATE_CLOSED: 
 		// Default entry to this state is with package flag false (empty vault), closed lid and unlocked. That will change as flags are tripped during operation 
-			
-		if ((fPackagePresent == true) && (fLockState == false)){ //Check for package flag change and confirm lid has not been locked already
+		if (lid_switch.ischanged = true){
+			box_state = STATE_OPENING;
+		}	
+		else if ((fPackagePresent == true) && (fLockState == false)){ //Check for package flag change and confirm lid has not been locked already
 			//(*)(*)*************blinky lightzen  for lockdown timer goes here...***************(*)(*)
 			if (TimeReached(&tLockdown,LOCKDOWN_INTERVAL)){
 				actuator_state = LOCKING_BOX;
 				box_state = STATE_SECURED;
 			}
 		else if ((fPackagePresent == true) && (fLockState == true)){
-				box_state = STATE_UNKNOWN;
+				box_state = STATE_UNKNOWN; //This should never happen unless we screwed up somewhere so go to UNKNOWN and chuck a wobbly
 			}
 
 		
 		}else{
 			//vault is empty at this point, blink green NEOLED for ready to receive amd wait for package to arrive
+			//(*)(*)*************blinky lightzen  for READY state goes here...***************(*)(*)
 		}
 	
 		break;
-		case STATE_OPENED:
-			lid_opened_timeout_secs = 60;
-
-
-
-			
-		break;
-		case STATE_SECURED:
-
 		case STATE_OPENING:
 
 			// example, set open time to max of 60 seconds .... you could add a button/motion detector inside the box that reset this again 
@@ -159,6 +154,20 @@ void Tasker_Lid(){
 
 		
 		break;
+		case STATE_OPENED:
+
+			if()
+			
+
+			
+			
+			if (TimeReached&tAjar,LID_AJAR_INTERVAL){
+				//(*)(*)*************blinky lightzen  for lid ajar goes here...***************(*)(*)
+			}
+		break;
+		case STATE_SECURED:
+
+		
 		case STATE_UNKNOWN: 
 			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("We have some flags that haven't been changed properly and we are lost in the weeds..."));
 		case STATE_CLOSING: 
@@ -240,7 +249,7 @@ void Tasker_Actuator(){
 		// WAITING TO BE CALLED OUT OF THIS STATE FOR LOCK/UNLOCK
 		break;
 		case LOCKING_BOX:
-		if (TimeReached(&tLock0, RELAY_INTERVAL)){
+		if (TimeReached(&tLock0, RELAY_INTERVAL)){ //Currently set to 6 seconds for relay interval
 			RELAY_LOCK_OFF();
 			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("LOCK process completed"));
 			fLockState = true;
@@ -251,7 +260,7 @@ void Tasker_Actuator(){
 		break;
 		case UNLOCKING_BOX:
 		RELAY_UNLOCK_ON(); // Starts actuator power for unlock
-		if (TimeReached(&tLock0, RELAY_INTERVAL)){
+		if (TimeReached(&tLock0, RELAY_INTERVAL)){ //Currently set to 6 seconds for relay interval
 			RELAY_UNLOCK_OFF();
 			AddSerialLog_P(LOG_LEVEL_INFO, PSTR("UNLOCK process completed"));
 			fLockState = false;
