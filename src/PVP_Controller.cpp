@@ -33,6 +33,8 @@ License along with VaultController.  If not, see
 */
 
 #include <Arduino.h>
+#include <NeoPixelBus.h>
+#include <Wiegand.h>
 #include "PVP_Controller.h"
 //#include <NeoPixelBus.h>
 
@@ -54,6 +56,8 @@ Serial.begin(74480);
 	lid_init();
 	box_init();
 
+	wg.begin();
+
 }
 
 void loop() {
@@ -61,6 +65,7 @@ void loop() {
 	Tasker_Lid();
 	Tasker_Actuator();
 	Tasker_Debug_Print();
+	Tasker_IO();
 	
 
 }
@@ -100,6 +105,9 @@ void box_init(){
 	RELAY_UNLOCK_INIT(); RELAY_UNLOCK_START(); //STARTS RELAY AND SETS LOW TO MAKE SURE IT'S OFF
 
 	LID_STATUS_LED_INIT(); LID_STATUS_LED_START(); //INITIALIZES LID OPEN STATUS LED, USED FOR DEBUG ON PROTO BOARD ONLY
+	PANIC_PIR_SNSR_INIT(); //temp commented out until proper hardware is set up
+	KEYPAD_TRIGGER_INIT(); //temp commented out until proper hardware is set up
+
 	
 }
 
@@ -116,17 +124,19 @@ void Tasker_Lid(){
 	SubTask_ReadLidState_OpenClosed();
 	SubTask_TimerLidState(); // Add timers that tick down regardless of state for security reasons
 	uint8_t fPackagePresent = false;
-	uint8_t fLastPackagePresentState = false;
 	
 
 	switch (box_state){
 		case STATE_CLOSED: 
 		// Default entry to this state is with package flag false (empty vault), closed lid and unlocked. That will change as flags are tripped during operation 
 		if (lid_switch.ischanged = true){
-			box_state = STATE_OPENING;
+			if (lid_switch.isactive = true){
+				box_state = STATE_OPENED;
+			}
 		}	
 		else if ((fPackagePresent == true) && (fLockState == false)){ //Check for package flag change and confirm lid has not been locked already
-			//(*)(*)*************blinky lightzen  for lockdown timer goes here...***************(*)(*)
+																	  //then start lockdown timer and go to SECURED once it completes
+			//(*)(*)*************blinky lightzen  for lockdown timer goes here somewhere...***************(*)(*)
 			if (TimeReached(&tLockdown,LOCKDOWN_INTERVAL)){
 				actuator_state = LOCKING_BOX;
 				box_state = STATE_SECURED;
@@ -138,10 +148,25 @@ void Tasker_Lid(){
 		
 		}else{
 			//vault is empty at this point, blink green NEOLED for ready to receive amd wait for package to arrive
-			//(*)(*)*************blinky lightzen  for READY state goes here...***************(*)(*)
+			//(*)(*)*************blinky lightzen  for READY state goes here somewhere...***************(*)(*)
 		}
 	
 		break;
+		
+		case STATE_OPENED:
+			fPackagePresent = true; //assume a package has been dropped (or additional added) and make sure the package flag is flipped
+			if (lid_switch.isactive = false){ //The lid has now closed so change to proper state
+				box_state = STATE_CLOSED;
+			}else if(TimeReached(&tAjar, LID_AJAR_INTERVAL)){ //This will time out if the lid is left opened (ajar)
+				AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("The lid has been left open and we have timed out, CLOSE THE LID"));
+				//(*)(*)*************blinky lightzen  for lid ajar goes here somewhere...***************(*)(*)
+			}
+		break;
+		case STATE_SECURED:
+
+		
+		case STATE_UNKNOWN: 
+			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("We have some flags that haven't been changed properly and we are lost in the weeds..."));
 		case STATE_OPENING:
 
 			// example, set open time to max of 60 seconds .... you could add a button/motion detector inside the box that reset this again 
@@ -154,22 +179,6 @@ void Tasker_Lid(){
 
 		
 		break;
-		case STATE_OPENED:
-
-			if()
-			
-
-			
-			
-			if (TimeReached&tAjar,LID_AJAR_INTERVAL){
-				//(*)(*)*************blinky lightzen  for lid ajar goes here...***************(*)(*)
-			}
-		break;
-		case STATE_SECURED:
-
-		
-		case STATE_UNKNOWN: 
-			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("We have some flags that haven't been changed properly and we are lost in the weeds..."));
 		case STATE_CLOSING: 
 
 			lid_opened_timeout_secs = 0; // disable/reset
@@ -275,6 +284,52 @@ void Tasker_Actuator(){
 	}
 }
 
+void Tasker_IO(){
+
+	SubTask_KeypadController();
+	SubTask_ReadPIRState_Trigger();
+	Subtask_WeigandReader();
+
+}
+
+void SubTask_ReadPIRState_Trigger(){
+
+	if ((PANIC_PIR_SNSR_ONOFF()!=pir.state)&&(TimeReached(&tDebounce, DEBOUNCE_INTERVAL)))
+	{
+		pir.state = PANIC_PIR_SNSR_ONOFF();
+		if(pir.state)
+		{
+			Serial.print("Active high PIR");
+			pir.isactive = true;
+			pir.tDetectTimeforDebounce = millis();
+		}else
+		{  
+			Serial.print("Active low PIR");
+			pir.isactive = false;
+		}
+	pir.ischanged = true;
+	}
+
+}
+
+void SubTask_KeypadCheck(){ //For the keypad input, keys and scan card
+
+//keypad retrieve needs to be set here
+//We also need to check for Weigand codes and act accordingly
+
+}
+
+void Subtask_WeigandReader() {
+	if(wg.available())
+	{
+		Serial.print("Wiegand HEX = ");
+		Serial.print(wg.getCode(),HEX);
+		Serial.print(", DECIMAL = ");
+		Serial.print(wg.getCode());
+		Serial.print(", Type W");
+		Serial.println(wg.getWiegandType());    
+	}
+}
 
 
 // Time elapsed function that updates the time when 
@@ -672,47 +727,7 @@ void Tasker_Lid(){
 
 }
 
-void PanicSensorCheck(){
 
-uint8_t pirState = 0;         // current state of the button
-uint8_t lastPIRState = 0;     // previous state of the button
-
-	// read the pushbutton input pin:
-  	pirState = digitalRead(PANIC_PIR_SNSR);
-  	// compare the buttonState to its previous state
-  	if (pirState != lastPIRState) {
-    // if the state has changed, increment the counter
-    if (pirState == 1 && TimeReached(&tPircheck, DEBOUNCE_INTERVAL)) {
-		changeState(STATE_UNLOCKING);
-		Serial.println("PIR was triggered");
-		}
-    } 
-  
-  // save the current state as the last state, for next time through the loop
-  lastPIRState = pirState;
-
-}
-
-void KeypadCheck(){
-
-uint8_t keypadState = 0;         // current state of the button
-uint8_t lastKEYPADState = 0;     // previous state of the button
-
-	// read the pushbutton input pin:
-  	keypadState = digitalRead(KEYPAD_TRIGGER);
-  	// compare the buttonState to its previous state
-  	if (keypadState != lastKEYPADState) {
-    // if the state has changed, increment the counter
-    if (keypadState == 1 && TimeReached(&tKeycheck, DEBOUNCE_INTERVAL)) {
-		changeState(STATE_UNLOCKING);
-		Serial.println("KEYPAD was triggered");
-		}
-    } 
-
-  // save the current state as the last state, for next time through the loop
-  lastKEYPADState = keypadState;
-
-}
 
 void CheckLidState(){
   

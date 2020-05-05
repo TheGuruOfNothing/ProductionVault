@@ -1,12 +1,16 @@
 #include <Arduino.h>
 
 
+WIEGAND wg;
+
 // BASIC I/O
-#define LID_SWITCH			D1	// Mag switch on lid
+#define LID_SWITCH			D2	// Mag switch on lid
 #define RELAY_UNLOCK_PIN	D5
 #define RELAY_LOCK_PIN		D6
 #define LID_OPEN_LED_PIN	D7
-//#define STATE_FOUR_LED_PIN	D8
+#define PANIC_PIR_SNSR		D8	// change IO! Passive Infrared sensor for panic release **************************change this pin, is not on this pin***************************
+#define KEYPAD_TRIGGER		D4	// change IO! Latching pushbutton for  panic release, backlit
+//(*)(*) MUST MAKE SURE THAT THE INPUTS IN THE WEIGAND FILES ARE SET RIGHT FOR CURRENT BOARD(*)(*)
 
 /******************************************************************************************************************/
 /* ***************************************************     ALL I/O       ******************************************/
@@ -15,8 +19,12 @@
 
 
 //INPUTS*********************************************************************** 
-  #define LID_SWITCH_INIT() 		pinMode(LID_SWITCH, INPUT_PULLUP)
-  #define LID_SWITCH_ONOFF()      	!digitalRead(LID_SWITCH)
+#define LID_SWITCH_INIT() 			pinMode(LID_SWITCH, INPUT_PULLUP)
+#define LID_SWITCH_ONOFF()      	digitalRead(LID_SWITCH)
+#define PANIC_PIR_SNSR_INIT()	 	pinMode(PANIC_PIR_SNSR, INPUT)
+#define PANIC_PIR_SNSR_ONOFF()  	digitalRead(PANIC_PIR_SNSR)
+#define KEYPAD_TRIGGER_INIT()	 	pinMode(KEYPAD_TRIGGER, INPUT_PULLUP)
+#define KEYPAD_TRIGGER_ONOFF()  	digitalRead(KEYPAD_TRIGGER)
   
 
 //OUTPUTS**********************************************************************
@@ -24,8 +32,8 @@
 
 #define LID_STATUS_LED_INIT()     		pinMode(LID_OPEN_LED_PIN, OUTPUT)
 #define LID_STATUS_LED_START()			digitalWrite(LID_OPEN_LED_PIN,HIGH)
-#define LID_STATUS_LED_ON()              digitalWrite(LID_OPEN_LED_PIN, !ON_LOGIC_LEVEL)
-#define LID_STATUS_LED_OFF()              digitalWrite(LID_OPEN_LED_PIN, ON_LOGIC_LEVEL)
+#define LID_STATUS_LED_ON()             digitalWrite(LID_OPEN_LED_PIN, !ON_LOGIC_LEVEL)
+#define LID_STATUS_LED_OFF()            digitalWrite(LID_OPEN_LED_PIN, ON_LOGIC_LEVEL)
 
 //SETUP FOR RELAYS
 
@@ -81,6 +89,11 @@ const char* GetLogLevelNameShortbyID(uint8_t loglevel);
 void SubTask_TimerLidState();
 void SubTask_ReadLidState_OpenClosed();
 uint8_t lid_opened_timeout_secs = 0;
+
+void SubTask_KeypadController();
+void SubTask_ReadPIRState_Trigger();
+void Subtask_WeigandReader();
+
  
 
 
@@ -90,14 +103,6 @@ uint8_t lid_opened_timeout_secs = 0;
 #define SHIFT_INTERVAL		5000		// TEMP TIMER FOR TESTING
 #define RELAY_INTERVAL		6000		// Lock/Unlock relay operation time for those functions, 6 seconds
 #define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
-/*
-#define LOCKDOWN_INTERVAL	10000		// Period of time before lockdown of vault after lid close, 10 seconds
-
-#define RESPONSE_INTERVAL	500			// Timed response for debug serial.print
-#define RESPONSE_INTERVAL2	2000		// Timed response for debug serial.print
-#define RESPONSE_INTERVAL3	3000		// Timed response for debug serial.print
-*/
-
 
 typedef struct TIMER_HANDLER{
   uint32_t millis = 0;
@@ -111,19 +116,13 @@ typedef struct TIMER_HANDLER{
 	timereached_t tAjar;
 	timereached_t tSavedTimerLidStateTicker;
 	timereached_t tLockdown;
-	//timereached_t tUnlock1;
-	//timereached_t tLock1;
-	/* - UNUSED ATM - 
 	
-	//timereached_t tResponse;
-	//
-	//timereached_t tKeycheck;
-	//timereached_t tPircheck;
+	/* - UNUSED ATM - 
 	//timereached_t tStatusCheck;
 	//timereached_t tSavedFeedbackDisplay;
 	*/
 
- typedef struct GPIO_DETECT{
+ typedef struct GPIO_DETECT_LID{
       uint8_t state = false;
       uint8_t isactive = false;
       uint8_t ischanged = false;
@@ -131,7 +130,27 @@ typedef struct TIMER_HANDLER{
       uint32_t tSaved;
       uint32_t tDetectTimeforDebounce;
     };
-    GPIO_DETECT lid_switch;
+    GPIO_DETECT_LID lid_switch;
+
+ typedef struct GPIO_DETECT_PIRSENSOR{
+      uint8_t state = false;
+      uint8_t isactive = false;
+      uint8_t ischanged = false;
+      //struct datetime changedtime;
+      uint32_t tSaved;
+      uint32_t tDetectTimeforDebounce;
+    };
+    GPIO_DETECT_PIRSENSOR pir;
+
+ typedef struct GPIO_DETECT_KEYPAD{
+      uint8_t state = false;
+      uint8_t isactive = false;
+      uint8_t ischanged = false;
+      //struct datetime changedtime;
+      uint32_t tSaved;
+      uint32_t tDetectTimeforDebounce;
+    };
+    GPIO_DETECT_KEYPAD keypad;
 
 
 //Function prototypes
@@ -143,52 +162,6 @@ void Lid_Tasker();
 void ChangeState(int new_state);
 void box_init();
 void lid_init();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -230,10 +203,7 @@ NeoPixelBus<NeoRgbFeature, Neo800KbpsMethod> *stripbus = nullptr;
 //Switches or Buttons -  
 #define LID_SWITCH_INIT() 		 	pinMode(LID_SWITCH, INPUT_PULLUP)
   #define LID_SWITCH_ONOFF()        !digitalRead(LID_SWITCH)
-#define PANIC_PIR_SNSR_INIT()	 	pinMode(PANIC_PIR_SNSR, INPUT)
-#define PANIC_PIR_SNSR_ACTIVE()  	digitalRead(PANIC_PIR_SNSR)
-#define KEYPAD_TRIGGER_INIT()	 	pinMode(KEYPAD_TRIGGER, INPUT_PULLUP)
-#define KEYPAD_TRIGGER_ACTIVE()  	digitalRead(KEYPAD_TRIGGER)
+
 			     	
 
 // ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS  ****OUTPUTS
