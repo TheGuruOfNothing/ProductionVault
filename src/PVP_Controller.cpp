@@ -70,7 +70,7 @@ void loop() {
 
 }
 
-/* >>>>>>>>>>>>>>>>>>>>>>>>>     FUNCTIONS HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
+/* >>>>>>>>>>>>>>>>>>>>>>>>>     INIT FUNCTIONS HERE      >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> */
 //*******************************************************************************************************/
 
 void box_init(){
@@ -116,6 +116,10 @@ void lid_init(){
 	LID_SWITCH_INIT();
 }
 
+//****************************************************************************//
+//     *****     LID STATE FUNCTIONS (TASK/SUBTASK)     *****                 //
+//                                                                            //
+//***************************************************************************//
 
 // Read lid position and set output
 void Tasker_Lid(){
@@ -155,14 +159,18 @@ void Tasker_Lid(){
 		
 		case STATE_OPENED:
 			fPackagePresent = true; //assume a package has been dropped (or additional added) and make sure the package flag is flipped
-			if (lid_switch.isactive = false){ //The lid has now closed so change to proper state
+			if (lid_switch.ischanged = true){
+				if (lid_switch.isactive = false){ //The lid has now closed so change to proper state
 				box_state = STATE_CLOSED;
+				}
 			}else if(TimeReached(&tAjar, LID_AJAR_INTERVAL)){ //This will time out if the lid is left opened (ajar)
 				AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("The lid has been left open and we have timed out, CLOSE THE LID"));
 				//(*)(*)*************blinky lightzen  for lid ajar goes here somewhere...***************(*)(*)
 			}
 		break;
 		case STATE_SECURED:
+			//(*)(*)*************blinky lightzen  for LOCKED state goes here somewhere...***************(*)(*)
+
 
 		
 		case STATE_UNKNOWN: 
@@ -249,6 +257,10 @@ void SubTask_TimerLidState(){
 
 }
 
+//***************************************************************************//
+//     *****     ACTUATOR CONTROL FUNCTION     *****                         //
+//                                                                           //
+//***************************************************************************//
 void Tasker_Actuator(){
 		
 	switch(actuator_state){
@@ -283,11 +295,14 @@ void Tasker_Actuator(){
 		
 	}
 }
-
+//****************************************************************************//
+//  *****    ALL KEYPAD, PANIC PIR SENSOR FUNCTIONS GO HERE     *****         //
+//                                                                            //
+//****************************************************************************//
 void Tasker_IO(){
 
-	SubTask_KeypadController();
 	SubTask_ReadPIRState_Trigger();
+	SubTask_KeypadCheck();
 	Subtask_WeigandReader();
 
 }
@@ -314,8 +329,21 @@ void SubTask_ReadPIRState_Trigger(){
 
 void SubTask_KeypadCheck(){ //For the keypad input, keys and scan card
 
-//keypad retrieve needs to be set here
-//We also need to check for Weigand codes and act accordingly
+	if ((KEYPAD_TRIGGER_ONOFF()!=keypad.state)&&(TimeReached(&tDebounce, DEBOUNCE_INTERVAL)))
+	{
+		keypad.state = KEYPAD_TRIGGER_ONOFF();
+		if(keypad.state)
+		{
+			Serial.print("Active high keypad");
+			keypad.isactive = true;
+			keypad.tDetectTimeforDebounce = millis();
+		}else
+		{  
+			Serial.print("Active low keypad");
+			keypad.isactive = false;
+		}
+	keypad.ischanged = true;
+	}
 
 }
 
@@ -331,6 +359,10 @@ void Subtask_WeigandReader() {
 	}
 }
 
+//*****************************************************************************//
+//   *****     TIMER FUNCTION FOR ALL TIMERS     *****                         //
+//                                                                             //
+//*****************************************************************************//
 
 // Time elapsed function that updates the time when 
 uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
@@ -345,9 +377,10 @@ uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
   return false;
 }
 
-//*****************************************************************************************************************************
-//* Applicable DEBUG and LOGGING code
-//**************************************************************************************************************************** *
+//***************************************************************************//
+//     *****     Applicable DEBUG and LOGGING code      *****                //
+//                                                                           //
+//***************************************************************************//
  //Printing current states for switch case and other items
  void Tasker_Debug_Print(){
  	
@@ -356,8 +389,6 @@ uint8_t TimeReached(TIMER_HANDLER* tSaved, uint32_t ElapsedTime){
 	 AddSerialLog_P(LOG_LEVEL_DEBUG, PSTR("Box case changed to"),box_state);
      old_box_state = box_state; //change old box state to match current state - which SHOULD stop a serial print loop because the statement is no longer true, i.e. box state and old box state are now the same
  	}
-
-
  }
 
  // For sending without network during uploads
@@ -416,7 +447,7 @@ const char* GetLogLevelNameShortbyID(uint8_t id){
 
 
 
-
+// OLD CODE FOR REFERENCE/CUT AND PASTE LATER
 
 
 // // Read lid position and set output
