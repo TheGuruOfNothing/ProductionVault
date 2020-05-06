@@ -132,7 +132,8 @@ void Tasker_Lid(){
 
 	switch (box_state){
 		case STATE_CLOSED: 
-		// Default entry to this state is with package flag false (empty vault), closed lid and unlocked. That will change as flags are tripped during operation 
+		// Default entry to this state is with package flag false (empty vault), closed lid and unlocked. 
+		// That will change as flags are tripped during operation 
 		if (lid_switch.ischanged = true){
 			if (lid_switch.isactive = true){
 				box_state = STATE_OPENED;
@@ -158,25 +159,37 @@ void Tasker_Lid(){
 		break;
 		
 		case STATE_OPENED:
+		// Triggered once the lid is opened, flips package flag to true, then looks for lid to close. If it
+		// doesn't see that change after 2 minutes, it chucks a wobbly and starts blinking lights in error
+		// If it's opened again for an additional package delivery, the flag will already be in the TRUE state
 			fPackagePresent = true; //assume a package has been dropped (or additional added) and make sure the package flag is flipped
 			if (lid_switch.ischanged = true){
 				if (lid_switch.isactive = false){ //The lid has now closed so change to proper state
 				box_state = STATE_CLOSED;
 				}
 			}else if(TimeReached(&tAjar, LID_AJAR_INTERVAL)){ //This will time out if the lid is left opened (ajar)
+				//lid_opened_timeout_secs = 60; ???????
 				AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("The lid has been left open and we have timed out, CLOSE THE LID"));
 				//(*)(*)*************blinky lightzen  for lid ajar goes here somewhere...***************(*)(*)
 			}
 		break;
 		case STATE_SECURED:
-			//(*)(*)*************blinky lightzen  for LOCKED state goes here somewhere...***************(*)(*)
+		// Vault was locked by TASKER_ACTUATOR and is now idle, waiting for a retrieve request. The open request
+		// for additional packages is NOT handled by this state. 
+			if (keypad.ischanged = true){
+				if (keypad.isactive = true){ //A retrieve request is being made
+				box_state = STATE_CLOSED;
+				}
+			}else{
+			//(*)(*)*************blinky lightzen  for LOCKED state goes here somewhere...***************(*)(*)	
+			}
 
 
 		
 		case STATE_UNKNOWN: 
 			AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("We have some flags that haven't been changed properly and we are lost in the weeds..."));
+			//(*)(*)*************blinky lightzen  for ERROR state goes here somewhere, use lid ajar sequence...*(*)(*)
 		case STATE_OPENING:
-
 			// example, set open time to max of 60 seconds .... you could add a button/motion detector inside the box that reset this again 
 			lid_opened_timeout_secs = 60;
 
@@ -184,8 +197,6 @@ void Tasker_Lid(){
 			// notif.pixel[0].period_ms = 500; // 0.25 second between "on"s, so quarter second toggling
 			// notif.pixel[0].mode = NOTIF_MODE_PULSING_ON_ID;
 			// notif.pixel[0].color = preset_color_map[COLOR_GREEN_INDEX];
-
-		
 		break;
 		case STATE_CLOSING: 
 
@@ -221,41 +232,6 @@ void SubTask_ReadLidState_OpenClosed(){
 
 }
 
-void SubTask_TimerLidState(){
-
-	// you can use this 1 second timer for many different tickers (1 second timeouts)
-  if(TimeReached(&tSavedTimerLidStateTicker,1000)){
-
-	  //optional idea
-	//#define ENABLE_NEO_TIMEOUT_INDICATOR //just here as I test
-	#ifdef ENABLE_NEO_TIMEOUT_INDICATOR
-	if(lid_opened_timeout_secs < 10){
-		notif.pixel[0].period_ms = map(lid_opened_timeout_secs,0,10,20,200); // maps the last 10 seconds into 20-200ms blinking .. play with the numbers 
-		notif.pixel[0].mode = NOTIF_MODE_BLINKING_ON_ID;
-		notif.pixel[0].color = preset_color_map[COLOR_RED_INDEX];
-	}
-	#endif
-
-	
-	// count down
-    if(lid_opened_timeout_secs>1){ 
-      lid_opened_timeout_secs--;
-      AddSerialLog_P(LOG_LEVEL_INFO, PSTR("lid_opened_timeout_secs = %d"),lid_opened_timeout_secs);
-    }else 
-	if(lid_opened_timeout_secs==1){ // at one second left, react by closing or set warning or whatever
-      lid_opened_timeout_secs = 0; // setting to 0 will disable the timer
-	  
-      AddSerialLog_P(LOG_LEVEL_ERROR, PSTR("lid_opened_timeout_secs = %d, TIMEOUT reached"),lid_opened_timeout_secs);
-
-	  box_state = STATE_CLOSING;
-
-	  
-    }
-
-  }
-
-
-}
 
 //***************************************************************************//
 //     *****     ACTUATOR CONTROL FUNCTION     *****                         //
@@ -301,9 +277,9 @@ void Tasker_Actuator(){
 //****************************************************************************//
 void Tasker_IO(){
 
-	SubTask_ReadPIRState_Trigger();
+	SubTask_ReadPIRState_Trigger(); //PANIC STATE TRIGGER CHECK
 	SubTask_KeypadCheck();
-	Subtask_WeigandReader();
+	Subtask_WeigandReader(); //NEED TO USE THIS FOR VALIDATION, SAVE TO MEMORY????
 
 }
 

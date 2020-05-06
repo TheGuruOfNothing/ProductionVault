@@ -163,6 +163,23 @@ void ChangeState(int new_state);
 void box_init();
 void lid_init();
 
+// BUILD OPTIONS BELOW THIS POINT ONLY // BUILD OPTIONS BELOW THIS POINT ONLY //
+//****************************************************************************//
+
+//#########################################################################################
+// Build Option - SECURE OPERATIONS - is a switch to change the vault from DEFAULT unlocked
+// when empty to a default of locked at all times when lid is not open. Purpose for this is
+// to make sure that nobody can view the contents or drop a package without a code. IT WILL 
+// REQUIRE A PREPROGRAMMED CARD KEY TO SET/UNSET THIS FEATURE to prevent open source code
+// from being exploited
+
+//#define SECURE_OPERATIONS_ON //
+// ^^^^^^^^ Still needs a way to set it up, or to toggle it with the card, not coded yet...
+
+//#########################################################################################
+//Insert next build option here... if there ever is one
+
+
 
 
 
